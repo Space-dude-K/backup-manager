@@ -57,28 +57,28 @@ namespace backup_manager.Settings
         }
         public List<Device> LoadCompSettings()
         {
-            List<Device> comps = new List<Device>();
+            List<Device> devices = [];
 
             SettingsConfiguration myConfig = (SettingsConfiguration)ConfigurationManager.GetSection("settings");
 
-            foreach (CheckObjectElement compSetting in myConfig.CheckObjects)
+            foreach (CheckObjectElement deviceSetting in myConfig.CheckObjects)
             {
-                Device comp = new Device();
-                comp.Ip = compSetting.ObjectIp;
+                Device device = new();
+                device.Ip = deviceSetting.ObjectIp;
 
-                if (compSetting.ObjectDisks != string.Empty)
+                if (deviceSetting.DeviceName != string.Empty)
                 {
-                    comp.Disks = compSetting.ObjectDisks;
+                    device.Name = deviceSetting.DeviceName;
                 }
                 else
                 {
-                    throw new Exception("Null setting exception.");
+                    throw new Exception("Null DeviceName setting exception.");
                 }
 
-                comps.Add(comp);
+                devices.Add(device);
             }
 
-            return comps;
+            return devices;
         }
         public void SaveSmtpReqSettings(string mailLogin, string mailLoginSalt, string mailPassword, string mailPasswordSalt)
         {

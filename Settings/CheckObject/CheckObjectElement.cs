@@ -11,11 +11,11 @@ namespace backup_manager.Settings.CheckObject
             get { return (string)this["ip"]; }
             set { this["ip"] = value; }
         }
-        [ConfigurationProperty("device", IsRequired = false)]
-        public string Device
+        [ConfigurationProperty("name", IsRequired = false)]
+        public string DeviceName
         {
-            get { return CheckObject((string)this["device"]); }
-            set { this["device"] = value; }
+            get { return CheckObject((string)this["name"]); }
+            set { this["name"] = value; }
         }
         private string CheckObject(string rawStr)
         {
