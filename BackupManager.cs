@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace backup_manager
 {
-    internal class BackupManager
+    class BackupManager
     {
+        public BackupManager()
+        {
+        }
+
     }
 }

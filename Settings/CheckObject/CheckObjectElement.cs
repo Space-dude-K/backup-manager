@@ -11,6 +11,12 @@ namespace backup_manager.Settings.CheckObject
             get { return (string)this["ip"]; }
             set { this["ip"] = value; }
         }
+        [ConfigurationProperty("backupCmdType", IsRequired = false)]
+        public string BackupCmdType
+        {
+            get { return CheckObject((string)this["backupCmdType"]); }
+            set { this["backupCmdType"] = value; }
+        }
         [ConfigurationProperty("name", IsRequired = false)]
         public string DeviceName
         {
