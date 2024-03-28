@@ -8,9 +8,9 @@ namespace backup_manager
     {
         private readonly string serverDir;
 
-        public SftpServer(string serverDir)
+        public SftpServer()
         {
-            this.serverDir = serverDir;
+            Console.WriteLine("SFTP init.");
         }
         public void RunSftpServer()
         {
@@ -84,7 +84,6 @@ namespace backup_manager
         {
             OutputTransferStatus(transfer, "Progress " + progress);
         }
-
         private void OutputTransferStatus(ITftpTransfer transfer, string message)
         {
             Console.WriteLine("[" + transfer.Filename + "] " + message);

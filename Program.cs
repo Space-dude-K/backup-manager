@@ -1,7 +1,16 @@
-﻿using Renci.SshNet;
+﻿using backup_manager.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NLog;
+using NLog.Extensions.Logging;
+using Renci.SshNet;
+using System;
+using System.Configuration;
 using System.Net;
 using System.Xml;
 using Tftp.Net;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace backup_manager
 {
@@ -13,13 +22,61 @@ namespace backup_manager
         static string ServerDirectory = Environment.CurrentDirectory;
         static void Main(string[] args)
         {
-            Task.Run(() => RunSftpServer());
+            var logger = LogManager.GetCurrentClassLogger();
+            try
+            {
+                var config = new ConfigurationBuilder()
+                   //.SetBasePath(System.IO.Directory.GetCurrentDirectory())
+                   //.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                   .Build();
 
-            ConnectAndDownload();
-            //ConnectAndDownloadAsync().Wait();
+                var servicesProvider = BuildDi(config);
 
-            Console.WriteLine("Hello, World!");
+                using (servicesProvider as IDisposable)
+                {
+                    var backupManager = servicesProvider.GetRequiredService<BackupManager>();
+                    backupManager.Init();
+
+                    Console.WriteLine("Press ANY key to exit");
+                    Console.ReadKey();
+                }
+            }
+            catch (Exception ex)
+            {
+                // NLog: catch any exception and log it.
+                logger.Error(ex, "Stopped program because of exception");
+                throw;
+            }
+            finally
+            {
+                // Ensure to flush and stop internal timers/threads before application-exit (Avoid segmentation fault on Linux)
+                LogManager.Shutdown();
+            }
         }
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services
+                .AddSingleton<ILoggerManager, LoggerManager>()
+                .AddSingleton<ISftpServer>(new SftpServer())
+                .AddSingleton<BackupManager>();
+
+        }
+        private static IServiceProvider BuildDi(IConfiguration config)
+        {
+            return new ServiceCollection()
+                  // Add DI Classes here
+                  .AddTransient<ISftpServer, SftpServer>()
+                  .AddTransient<BackupManager>()
+                  .AddLogging(loggingBuilder =>
+                  {
+                      // configure Logging with NLog
+                      loggingBuilder.ClearProviders();
+                      loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                      loggingBuilder.AddNLog(config);
+                  })
+                  .BuildServiceProvider();
+        }
+
         static string ConnectAndDownload()
         {
             using (var client = new SshClient(sshClientAddress, "admin", "VMGPa$$w0rd"))
