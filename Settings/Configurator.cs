@@ -55,7 +55,7 @@ namespace backup_manager.Settings
 
             myConfig.CurrentConfiguration.Save();
         }
-        public List<Device> LoadCompSettings()
+        public List<Device> LoadDeviceSettings()
         {
             List<Device> devices = [];
 
