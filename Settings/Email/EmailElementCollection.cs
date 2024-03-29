@@ -2,8 +2,8 @@
 
 namespace backup_manager.Settings.Email
 {
-    [ConfigurationCollection(typeof(EmailElement), AddItemName = "email", CollectionType = ConfigurationElementCollectionType.BasicMap)]
-    class EmailElementCollection : ConfigurationElementCollection
+    [ConfigurationCollection(typeof(LoginElement), AddItemName = "email", CollectionType = ConfigurationElementCollectionType.BasicMap)]
+    class LoginElementCollection : ConfigurationElementCollection
     {
         protected override ConfigurationElement CreateNewElement()
         {
@@ -14,7 +14,7 @@ namespace backup_manager.Settings.Email
             if (element == null)
                 throw new ArgumentNullException("EmailData");
 
-            return ((EmailElement)element).Email;
+            return ((LoginElement)element).Email;
         }
         [ConfigurationProperty("sendEmail", IsDefaultCollection = false)]
         public string SendEmail

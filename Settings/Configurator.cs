@@ -110,7 +110,7 @@ namespace backup_manager.Settings
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            foreach (EmailElement mailSetting in myConfig.Emails)
+            foreach (LoginElement mailSetting in myConfig.Emails)
             {
                 Mail mail = new Mail();
                 mail.Email = mailSetting.Email;

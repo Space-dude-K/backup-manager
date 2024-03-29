@@ -12,9 +12,9 @@ namespace backup_manager.Settings
             get { return ((CheckObjectElementCollection)(base["objectsToCheck"])); }
         }
         [ConfigurationProperty("emails", IsDefaultCollection = false)]
-        public EmailElementCollection Emails
+        public LoginElementCollection Emails
         {
-            get { return ((EmailElementCollection)(base["emails"])); }
+            get { return ((LoginElementCollection)(base["emails"])); }
         }
         [ConfigurationProperty("adminLogin", IsDefaultCollection = false)]
         public string AdminLogin
