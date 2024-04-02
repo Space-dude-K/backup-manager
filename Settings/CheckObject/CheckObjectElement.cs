@@ -23,6 +23,12 @@ namespace backup_manager.Settings.CheckObject
             get { return CheckObject((string)this["name"]); }
             set { this["name"] = value; }
         }
+        [ConfigurationProperty("loginId", IsRequired = false)]
+        public string LoginId
+        {
+            get { return CheckObject((string)this["loginId"]); }
+            set { this["loginId"] = value; }
+        }
         private string CheckObject(string rawStr)
         {
             if (rawStr.Contains("="))

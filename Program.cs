@@ -1,4 +1,5 @@
 ﻿using backup_manager.Interfaces;
+using backup_manager.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,9 @@ namespace backup_manager
                     var backupManager = servicesProvider.GetRequiredService<BackupManager>();
                     backupManager.Init();
 
+                    var conf = servicesProvider.GetRequiredService<IConfigurator>();
+                    conf.SaveAdminSettings(new ("admLogin", "logSalt", "admPass", "passSalt"), 2);
+
                     Console.WriteLine("Press ANY key to exit");
                     Console.ReadKey();
                 }
@@ -53,18 +57,11 @@ namespace backup_manager
                 LogManager.Shutdown();
             }
         }
-        private static void ConfigureServices(IServiceCollection services)
-        {
-            services
-                .AddSingleton<ILoggerManager, LoggerManager>()
-                .AddSingleton<ISftpServer>(new SftpServer())
-                .AddSingleton<BackupManager>();
-
-        }
         private static IServiceProvider BuildDi(IConfiguration config)
         {
             return new ServiceCollection()
                   // Add DI Classes here
+                  .AddSingleton<IConfigurator, Configurator>()
                   .AddTransient<ISftpServer, SftpServer>()
                   .AddTransient<BackupManager>()
                   .AddLogging(loggingBuilder =>

@@ -2,8 +2,8 @@
 
 namespace backup_manager.Settings.Email
 {
-    [ConfigurationCollection(typeof(LoginElement), AddItemName = "email", CollectionType = ConfigurationElementCollectionType.BasicMap)]
-    class LoginElementCollection : ConfigurationElementCollection
+    [ConfigurationCollection(typeof(EmailElement), AddItemName = "email", CollectionType = ConfigurationElementCollectionType.BasicMap)]
+    class EmailElementCollection : ConfigurationElementCollection
     {
         protected override ConfigurationElement CreateNewElement()
         {
@@ -14,7 +14,7 @@ namespace backup_manager.Settings.Email
             if (element == null)
                 throw new ArgumentNullException("EmailData");
 
-            return ((LoginElement)element).Email;
+            return ((EmailElement)element).Email;
         }
         [ConfigurationProperty("sendEmail", IsDefaultCollection = false)]
         public string SendEmail
@@ -34,29 +34,11 @@ namespace backup_manager.Settings.Email
             get { return (string)this["mailFrom"]; }
             set { this["mailFrom"] = value; }
         }
-        [ConfigurationProperty("mailLogin", IsDefaultCollection = false)]
-        public string MailLogin
+        [ConfigurationProperty("loginId", IsDefaultCollection = false)]
+        public string LoginId
         {
-            get { return (string)this["mailLogin"]; }
-            set { this["mailLogin"] = value; }
-        }
-        [ConfigurationProperty("mailLoginSalt", IsDefaultCollection = false)]
-        public string MailLoginSalt
-        {
-            get { return (string)this["mailLoginSalt"]; }
-            set { this["mailLoginSalt"] = value; }
-        }
-        [ConfigurationProperty("mailPassword", IsDefaultCollection = false)]
-        public string MailPassword
-        {
-            get { return (string)this["mailPassword"]; }
-            set { this["mailPassword"] = value; }
-        }
-        [ConfigurationProperty("mailPasswordSalt", IsDefaultCollection = false)]
-        public string MailPasswordSalt
-        {
-            get { return (string)this["mailPasswordSalt"]; }
-            set { this["mailPasswordSalt"] = value; }
+            get { return (string)this["loginId"]; }
+            set { this["loginId"] = value; }
         }
     }
 }

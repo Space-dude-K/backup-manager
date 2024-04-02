@@ -16,6 +16,12 @@ namespace backup_manager.Settings.Email
             get { return (string)this["subject"]; }
             set { this["subject"] = value; }
         }
+        [ConfigurationProperty("loginId", IsRequired = false)]
+        public string LoginId
+        {
+            get { return (string)this["loginId"]; }
+            set { this["loginId"] = value; }
+        }
         public EmailElement()
         {
         }

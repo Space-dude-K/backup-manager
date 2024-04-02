@@ -1,5 +1,6 @@
 ﻿using backup_manager.Settings.CheckObject;
 using backup_manager.Settings.Email;
+using backup_manager.Settings.Login;
 using System.Configuration;
 
 namespace backup_manager.Settings
@@ -9,36 +10,17 @@ namespace backup_manager.Settings
         [ConfigurationProperty("objectsToCheck", IsDefaultCollection = false)]
         public CheckObjectElementCollection CheckObjects
         {
-            get { return ((CheckObjectElementCollection)(base["objectsToCheck"])); }
+            get { return (CheckObjectElementCollection)base["objectsToCheck"]; }
         }
         [ConfigurationProperty("emails", IsDefaultCollection = false)]
-        public LoginElementCollection Emails
+        public EmailElementCollection Emails
         {
-            get { return ((LoginElementCollection)(base["emails"])); }
+            get { return (EmailElementCollection)base["emails"]; }
         }
-        [ConfigurationProperty("adminLogin", IsDefaultCollection = false)]
-        public string AdminLogin
+        [ConfigurationProperty("logins", IsDefaultCollection = false)]
+        public LoginElementCollection Logins
         {
-            get { return (string)this["adminLogin"]; }
-            set { this["adminLogin"] = value; }
-        }
-        [ConfigurationProperty("loginSalt", IsDefaultCollection = false)]
-        public string LoginSalt
-        {
-            get { return (string)this["loginSalt"]; }
-            set { this["loginSalt"] = value; }
-        }
-        [ConfigurationProperty("adminPass", IsDefaultCollection = false)]
-        public string AdminPass
-        {
-            get { return (string)this["adminPass"]; }
-            set { this["adminPass"] = value; }
-        }
-        [ConfigurationProperty("passSalt", IsDefaultCollection = false)]
-        public string PassSalt
-        {
-            get { return (string)this["passSalt"]; }
-            set { this["passSalt"] = value; }
+            get { return (LoginElementCollection)base["logins"]; }
         }
     }
 }

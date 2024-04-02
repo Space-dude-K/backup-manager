@@ -1,10 +1,13 @@
-﻿using backup_manager.Settings.CheckObject;
+﻿using backup_manager.Cypher;
+using backup_manager.Interfaces;
+using backup_manager.Settings.CheckObject;
 using backup_manager.Settings.Email;
+using backup_manager.Settings.Login;
 using System.Configuration;
 
 namespace backup_manager.Settings
 {
-    class Configurator
+    class Configurator : IConfigurator
     {
         enum SectionTypes
         {
@@ -36,22 +39,42 @@ namespace backup_manager.Settings
 
             return config;
         }
-        public (string admLogin, string loginSalt, string admPass, string passSalt) LoadAdminSettings()
+        public List<(string, string, string, string)> LoadLoginSettings()
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            return (myConfig.AdminLogin, myConfig.LoginSalt, myConfig.AdminPass, myConfig.PassSalt);
+            List<(string, string, string, string)> reqs = [];
+
+            foreach (LoginElement confReq in myConfig.Logins)
+            {
+                reqs.Add((confReq.LoginData, confReq.LoginSalt, confReq.PassData, confReq.PassSalt));
+            }
+
+            return reqs;
         }
-        public void SaveAdminSettings((string admLogin, string loginSalt, string admPass, string passSalt) req)
+        public void SaveAdminSettings((string admLogin, string loginSalt, string admPass, string passSalt) req, int loginId)
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            myConfig.AdminLogin = req.admLogin;
-            myConfig.LoginSalt = req.loginSalt;
-            myConfig.AdminPass = req.admPass;
-            myConfig.PassSalt = req.passSalt;
+            bool isAlrdyInConfig = false;
+
+            foreach (LoginElement confReq in myConfig.Logins)
+            {
+                if (int.Parse(confReq.Id) == loginId)
+                {
+                    confReq.LoginData = req.admLogin;
+                    confReq.LoginSalt = req.loginSalt;
+                    confReq.PassData = req.admPass;
+                    confReq.PassSalt = req.passSalt;
+
+                    isAlrdyInConfig = true;
+                }
+            }
+
+            myConfig.Logins.Add(new LoginElement(loginId.ToString(), 
+                req.admLogin, req.loginSalt, req.admPass, req.passSalt));
 
             myConfig.CurrentConfiguration.Save();
         }
@@ -85,14 +108,9 @@ namespace backup_manager.Settings
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            myConfig.Emails.MailLogin = mailLogin;
-            myConfig.Emails.MailLoginSalt = mailLoginSalt;
-            myConfig.Emails.MailPassword = mailPassword;
-            myConfig.Emails.MailPasswordSalt = mailPasswordSalt;
-
             myConfig.CurrentConfiguration.Save();
         }
-        public (bool sendEmail, string smtpServer, string mailFrom, string mailLogin, string mailLoginSalt, string mailPassword, string mailPasswordSalt) LoadSmtpSettings()
+        public (bool sendEmail, string smtpServer, string mailFrom) LoadSmtpSettings()
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
@@ -100,8 +118,7 @@ namespace backup_manager.Settings
             bool sendEmail = false;
             bool.TryParse(myConfig.Emails.SendEmail, out sendEmail);
 
-            return (sendEmail, myConfig.Emails.SmtpServer, myConfig.Emails.MailFrom,
-                myConfig.Emails.MailLogin, myConfig.Emails.MailLoginSalt, myConfig.Emails.MailPassword, myConfig.Emails.MailPasswordSalt);
+            return (sendEmail, myConfig.Emails.SmtpServer, myConfig.Emails.MailFrom);
         }
         public List<Mail> LoadMailSettings()
         {
@@ -110,7 +127,7 @@ namespace backup_manager.Settings
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            foreach (LoginElement mailSetting in myConfig.Emails)
+            foreach (EmailElement mailSetting in myConfig.Emails)
             {
                 Mail mail = new Mail();
                 mail.Email = mailSetting.Email;

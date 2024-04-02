@@ -2,7 +2,7 @@
 
 namespace backup_manager.Settings.Login
 {
-    class LoginElement : ConfigurationElement
+    public class LoginElement : ConfigurationElement
     {
         [ConfigurationProperty("id", DefaultValue = "", IsRequired = true)]
         public string Id
@@ -34,6 +34,15 @@ namespace backup_manager.Settings.Login
             get { return (string)this["passSalt"]; }
             set { this["passSalt"] = value; }
         }
+        public LoginElement(string id, string loginData, string loginSalt, string passData, string passSalt)
+        {
+            Id = id;
+            LoginData = loginData;
+            LoginSalt = loginSalt;
+            PassData = passData;
+            PassSalt = passSalt;
+        }
+
         public LoginElement()
         {
         }
