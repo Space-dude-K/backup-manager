@@ -39,6 +39,10 @@ namespace backup_manager.Cypher
         {
             return SetRequisites(user, pass);
         }
+        public RequisiteInformation Encrypt(string user, string pass)
+        {
+            return SetRequisites(user, pass);
+        }
         /// <summary>
         /// Этот метод производит расшифровку пользовательских данных в простую строку (логин и пароль).
         /// </summary>
@@ -55,9 +59,21 @@ namespace backup_manager.Cypher
         /// </returns>
         public RequisiteInformation Decrypt(SecureString userEncrypted, string uSalt, SecureString passEncrypted, string pSalt)
         {
-            return new RequisiteInformation(DecryptString(userEncrypted, uSalt), uSalt, DecryptString(passEncrypted, pSalt), pSalt);
+            return new RequisiteInformation(DecryptSecureString(userEncrypted, uSalt), uSalt, DecryptSecureString(passEncrypted, pSalt), pSalt);
         }
         public RequisiteInformation SetRequisites(SecureString user, SecureString pass)
+        {
+            var lSalt = GetSalt(256);
+            var pSalt = GetSalt(256);
+
+            return new RequisiteInformation(
+                ToSecureString(EncryptString(user, lSalt)),
+                Convert.ToBase64String(lSalt),
+                ToSecureString(EncryptString(pass, pSalt)),
+                Convert.ToBase64String(pSalt)
+                );
+        }
+        public RequisiteInformation SetRequisites(string user, string pass)
         {
             var lSalt = GetSalt(256);
             var pSalt = GetSalt(256);
@@ -78,12 +94,39 @@ namespace backup_manager.Cypher
 
             return Convert.ToBase64String(encryptedData);
         }
-        public SecureString DecryptString(SecureString encryptedData, string salt)
+        private string EncryptString(string input, byte[] salt)
+        {
+            byte[] encryptedData = System.Security.Cryptography.ProtectedData.Protect(
+                System.Text.Encoding.Unicode.GetBytes(input),
+                salt,
+                System.Security.Cryptography.DataProtectionScope.CurrentUser);
+
+            return Convert.ToBase64String(encryptedData);
+        }
+        public SecureString DecryptSecureString(SecureString encryptedData, string salt)
         {
             try
             {
                 byte[] decryptedData = System.Security.Cryptography.ProtectedData.Unprotect(
                     Convert.FromBase64String(ToInsecureString(encryptedData)),
+                    Convert.FromBase64String(salt),
+                    System.Security.Cryptography.DataProtectionScope.CurrentUser);
+
+                return ToSecureString(System.Text.Encoding.Unicode.GetString(decryptedData));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+
+                return new SecureString();
+            }
+        }
+        public SecureString DecryptString(string encryptedData, string salt)
+        {
+            try
+            {
+                byte[] decryptedData = System.Security.Cryptography.ProtectedData.Unprotect(
+                    Convert.FromBase64String(encryptedData),
                     Convert.FromBase64String(salt),
                     System.Security.Cryptography.DataProtectionScope.CurrentUser);
 

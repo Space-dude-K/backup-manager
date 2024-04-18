@@ -13,6 +13,7 @@ namespace backup_manager.Settings
     class Configurator : IConfigurator
     {
         private readonly ILogger<Configurator> loggerManager;
+        private readonly ICypher cypher;
 
         enum SectionTypes
         {
@@ -25,10 +26,10 @@ namespace backup_manager.Settings
             HP,
             Cisco
         }
-        public Configurator(ILogger<Configurator> loggerManager)
+        public Configurator(ILogger<Configurator> loggerManager, ICypher cypher)
         {
             this.loggerManager = loggerManager;
-            loggerManager.LogInformation("TEST FROM CONF");
+            this.cypher = cypher;
         }
         #region User Helpers Devices, Emails
         private Configuration LoadConfig()
@@ -52,7 +53,7 @@ namespace backup_manager.Settings
 
             return config;
         }
-        public List<Model.Login> LoadLoginSettings()
+        public List<Model.Login> LoadLoginSettings(bool loadAsPlainText = true)
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
@@ -64,7 +65,16 @@ namespace backup_manager.Settings
                 int loginId = 0;
                 int.TryParse(confReq.Id, out loginId);
 
-                logins.Add(new Model.Login(loginId, confReq.LoginData, confReq.LoginSalt, confReq.PassData, confReq.PassSalt));
+                if(loadAsPlainText)
+                {
+                    logins.Add(new Model.Login(loginId, 
+                        cypher.ToInsecureString(cypher.DecryptString(confReq.LoginData, confReq.LoginSalt)),
+                        cypher.ToInsecureString(cypher.DecryptString(confReq.PassData, confReq.PassSalt))));
+                }
+                else
+                {
+                    logins.Add(new Model.Login(loginId, confReq.LoginData, confReq.LoginSalt, confReq.PassData, confReq.PassSalt));
+                }
             }
 
             return logins;
@@ -74,19 +84,22 @@ namespace backup_manager.Settings
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
+            // TODO. Find latest ID
+            var ri = cypher.Encrypt(login.AdmLogin, login.AdminPass);
+
             foreach (LoginElement confReq in myConfig.Logins)
             {
                 if (int.Parse(confReq.Id) == login.LoginId)
                 {
-                    confReq.LoginData = login.AdmLogin;
-                    confReq.LoginSalt = login.LoginSalt;
-                    confReq.PassData = login.AdminPass;
-                    confReq.PassSalt = login.PassSalt;
+                    confReq.LoginData = cypher.ToInsecureString(ri.User);
+                    confReq.LoginSalt = ri.USalt;
+                    confReq.PassData = cypher.ToInsecureString(ri.Password);
+                    confReq.PassSalt = ri.PSalt;
                 }
             }
 
-            myConfig.Logins.Add(new LoginElement(login.LoginId.ToString(),
-                login.AdmLogin, login.LoginSalt, login.AdminPass, login.PassSalt));
+            myConfig.Logins.Add(new LoginElement(login.LoginId.ToString(), 
+                cypher.ToInsecureString(ri.User), ri.USalt, cypher.ToInsecureString(ri.Password), ri.PSalt));
 
             myConfig.CurrentConfiguration.Save(ConfigurationSaveMode.Minimal);
         }

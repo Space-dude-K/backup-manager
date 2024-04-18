@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "backup-manager": {
+      "commandName": "Project",
+      "commandLineArgs": "-setReq"
+    }
+  }
+}

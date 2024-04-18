@@ -1,4 +1,5 @@
-﻿using backup_manager.Interfaces;
+﻿using backup_manager.Cypher;
+using backup_manager.Interfaces;
 using backup_manager.Model;
 using backup_manager.Settings;
 using Microsoft.Extensions.Configuration;
@@ -41,10 +42,51 @@ namespace backup_manager
 
                     var conf = servicesProvider.GetRequiredService<IConfigurator>();
                     //conf.SaveAdminSettings(new Login (3, "admLogin", "logSalt", "admPass", "passSalt"));
-                    var deviceSettings = conf.LoadDeviceSettings(conf.LoadLoginSettings());
+                    //var deviceSettings = conf.LoadDeviceSettings(conf.LoadLoginSettings());
 
-                    Console.WriteLine("Press ANY key to exit");
+                    //Console.WriteLine($"Args: {args.Length}");
                     //Console.ReadKey();
+
+                    if(args.Length != 0)
+                    {
+                        foreach (var parameter in args)
+                        {
+                            switch (parameter.ToLower())
+                            {
+                                case "-setreq":
+
+                                    Console.WriteLine($"Set req init.");
+                                    Console.WriteLine("Введите id, логин, пароль через пробел:");
+
+                                    while (true)
+                                    {
+                                        var loginAdnPass = (Console.ReadLine().Split());
+
+                                        if (loginAdnPass.Length != 3 || string.IsNullOrEmpty(loginAdnPass[0]) 
+                                            || string.IsNullOrEmpty(loginAdnPass[1]) || string.IsNullOrEmpty(loginAdnPass[2]))
+                                        {
+                                            Console.WriteLine("Ошибка ввода. Введите id, логин, пароль через пробел: ");
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            int loginId = 0;
+                                            int.TryParse(loginAdnPass[0], out  loginId);
+
+                                            conf.SaveAdminSettings(new Login(loginId, loginAdnPass[1], loginAdnPass[2]));
+
+                                            var addedReq = conf.LoadLoginSettings();
+
+                                            Console.WriteLine($"Added reqs: {addedReq[addedReq.Count - 1].AdmLogin} {addedReq[addedReq.Count - 1].AdminPass}");
+                                        }
+
+                                        if (Console.ReadKey().Key == ConsoleKey.Enter)
+                                            break;
+                                    }
+                                    break;
+                            }
+                        }  
+                    }
                 }
             }
             catch (Exception ex)
@@ -63,6 +105,7 @@ namespace backup_manager
         {
             return new ServiceCollection()
                   // Add DI Classes here
+                  .AddSingleton<ICypher, Encryptor>()
                   .AddSingleton<IConfigurator, Configurator>()
                   .AddTransient<ISftpServer, SftpServer>()
                   .AddTransient<BackupManager>()

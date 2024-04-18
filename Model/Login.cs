@@ -10,6 +10,12 @@
             AdminPass = adminPass;
             PassSalt = passSalt;
         }
+        public Login(int loginId, string admLogin, string adminPass)
+        {
+            LoginId = loginId;
+            AdmLogin = admLogin;
+            AdminPass = adminPass;
+        }
 
         public int LoginId { set; get; }
         public string AdmLogin {  set; get; }
