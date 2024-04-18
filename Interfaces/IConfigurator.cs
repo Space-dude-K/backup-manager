@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using backup_manager.Model;
 
 namespace backup_manager.Interfaces
 {
     internal interface IConfigurator
     {
-        void SaveAdminSettings((string admLogin, string loginSalt, string admPass, string passSalt) req, int loginId);
+        void SaveAdminSettings(Login login);
         void SaveSmtpReqSettings(string mailLogin, string mailLoginSalt, string mailPassword, string mailPasswordSalt);
     }
 }

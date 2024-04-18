@@ -1,9 +1,11 @@
 ﻿using backup_manager.Cypher;
 using backup_manager.Interfaces;
+using backup_manager.Model;
 using backup_manager.Settings.CheckObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using System.Configuration;
+using System.Linq;
 
 namespace backup_manager.Settings
 {
@@ -53,30 +55,26 @@ namespace backup_manager.Settings
 
             return reqs;
         }
-        public void SaveAdminSettings((string admLogin, string loginSalt, string admPass, string passSalt) req, int loginId)
+        public void SaveAdminSettings(backup_manager.Model.Login login)
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            bool isAlrdyInConfig = false;
-
             foreach (LoginElement confReq in myConfig.Logins)
             {
-                if (int.Parse(confReq.Id) == loginId)
+                if (int.Parse(confReq.Id) == login.LoginId)
                 {
-                    confReq.LoginData = req.admLogin;
-                    confReq.LoginSalt = req.loginSalt;
-                    confReq.PassData = req.admPass;
-                    confReq.PassSalt = req.passSalt;
-
-                    isAlrdyInConfig = true;
+                    confReq.LoginData = login.AdmLogin;
+                    confReq.LoginSalt = login.LoginSalt;
+                    confReq.PassData = login.AdminPass;
+                    confReq.PassSalt = login.PassSalt;
                 }
             }
 
-            myConfig.Logins.Add(new LoginElement(loginId.ToString(), 
-                req.admLogin, req.loginSalt, req.admPass, req.passSalt));
+            myConfig.Logins.Add(new LoginElement(login.LoginId.ToString(),
+                login.AdmLogin, login.LoginSalt, login.AdminPass, login.PassSalt));
 
-            myConfig.CurrentConfiguration.Save();
+            myConfig.CurrentConfiguration.Save(ConfigurationSaveMode.Minimal);
         }
         public List<Device> LoadDeviceSettings()
         {

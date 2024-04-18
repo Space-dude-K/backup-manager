@@ -1,4 +1,5 @@
 ﻿using backup_manager.Interfaces;
+using backup_manager.Model;
 using backup_manager.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,10 +40,10 @@ namespace backup_manager
                     backupManager.Init();
 
                     var conf = servicesProvider.GetRequiredService<IConfigurator>();
-                    conf.SaveAdminSettings(new ("admLogin", "logSalt", "admPass", "passSalt"), 2);
+                    conf.SaveAdminSettings(new Login (3, "admLogin", "logSalt", "admPass", "passSalt"));
 
                     Console.WriteLine("Press ANY key to exit");
-                    Console.ReadKey();
+                    //Console.ReadKey();
                 }
             }
             catch (Exception ex)
