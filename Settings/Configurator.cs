@@ -1,12 +1,11 @@
-﻿using backup_manager.Cypher;
-using backup_manager.Interfaces;
+﻿using backup_manager.Interfaces;
 using backup_manager.Model;
+using backup_manager.Settings.BackupPaths;
 using backup_manager.Settings.CheckObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using Microsoft.Extensions.Logging;
 using System.Configuration;
-using System.Linq;
 
 namespace backup_manager.Settings
 {
@@ -79,7 +78,7 @@ namespace backup_manager.Settings
 
             return logins;
         }
-        public void SaveAdminSettings(Model.Login login)
+        public void SaveLoginSettings(Model.Login login)
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
@@ -102,6 +101,20 @@ namespace backup_manager.Settings
                 cypher.ToInsecureString(ri.User), ri.USalt, cypher.ToInsecureString(ri.Password), ri.PSalt));
 
             myConfig.CurrentConfiguration.Save(ConfigurationSaveMode.Minimal);
+        }
+        public List<string> LoadPathSettings()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            List<string> paths = [];
+
+            foreach (BackupPathElement pathEl in myConfig.BackupPaths)
+            {
+                paths.Add(pathEl.Path);
+            }
+
+            return paths;
         }
         public List<Device> LoadDeviceSettings(List<Model.Login> logins = null)
         {

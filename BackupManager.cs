@@ -1,11 +1,12 @@
 ﻿using backup_manager.Interfaces;
+using backup_manager.Model;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System;
 
 namespace backup_manager
 {
-    class BackupManager
+    class BackupManager : IBackupManager
     {
         private readonly ILogger<BackupManager> loggerManager;
         private readonly ISftpServer sftpServer;
@@ -15,9 +16,9 @@ namespace backup_manager
             this.loggerManager = loggerManager;
             this.sftpServer = sftpServer;
         }
-        public void Init()
+        public void Init(List<Device> devices, List<string> backupLocations)
         {
-            loggerManager.LogInformation("Test!");
+            loggerManager.LogInformation($"Backup manager init for {devices.Count}.");
         }
         string ConnectAndDownload(string sshClientAddress, string backupCmd)
         {

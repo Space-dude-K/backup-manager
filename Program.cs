@@ -37,15 +37,7 @@ namespace backup_manager
 
                 using (servicesProvider as IDisposable)
                 {
-                    var backupManager = servicesProvider.GetRequiredService<BackupManager>();
-                    backupManager.Init();
-
                     var conf = servicesProvider.GetRequiredService<IConfigurator>();
-                    //conf.SaveAdminSettings(new Login (3, "admLogin", "logSalt", "admPass", "passSalt"));
-                    //var deviceSettings = conf.LoadDeviceSettings(conf.LoadLoginSettings());
-
-                    //Console.WriteLine($"Args: {args.Length}");
-                    //Console.ReadKey();
 
                     if(args.Length != 0)
                     {
@@ -73,12 +65,15 @@ namespace backup_manager
                                             int loginId = 0;
                                             int.TryParse(loginAdnPass[0], out  loginId);
 
-                                            conf.SaveAdminSettings(new Login(loginId, loginAdnPass[1], loginAdnPass[2]));
+                                            conf.SaveLoginSettings(new Login(loginId, loginAdnPass[1], loginAdnPass[2]));
 
                                             var addedReq = conf.LoadLoginSettings();
 
-                                            Console.WriteLine($"Added reqs: {addedReq[addedReq.Count - 1].AdmLogin} {addedReq[addedReq.Count - 1].AdminPass}");
+                                            Console.WriteLine($"Added reqs: {addedReq[addedReq.Count - 1].AdmLogin} " +
+                                                $"{addedReq[addedReq.Count - 1].AdminPass}");
                                         }
+
+                                        Console.WriteLine("Press Enter to exit.");
 
                                         if (Console.ReadKey().Key == ConsoleKey.Enter)
                                             break;
@@ -87,6 +82,11 @@ namespace backup_manager
                             }
                         }  
                     }
+
+                    var backupManager = servicesProvider.GetRequiredService<IBackupManager>();
+                    var deviceConfigs = conf.LoadDeviceSettings(conf.LoadLoginSettings());
+
+                    backupManager.Init(deviceConfigs, new List<string>());
                 }
             }
             catch (Exception ex)
@@ -108,7 +108,7 @@ namespace backup_manager
                   .AddSingleton<ICypher, Encryptor>()
                   .AddSingleton<IConfigurator, Configurator>()
                   .AddTransient<ISftpServer, SftpServer>()
-                  .AddTransient<BackupManager>()
+                  .AddTransient<IBackupManager, BackupManager>()
                   .AddLogging(loggingBuilder =>
                   {
                       // configure Logging with NLog

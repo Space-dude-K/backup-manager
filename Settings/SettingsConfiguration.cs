@@ -12,6 +12,11 @@ namespace backup_manager.Settings
         {
             get { return (CheckObjectElementCollection)base["objectsToCheck"]; }
         }
+        [ConfigurationProperty("backupPaths", IsDefaultCollection = false)]
+        public CheckObjectElementCollection BackupPaths
+        {
+            get { return (CheckObjectElementCollection)base["objectsToCheck"]; }
+        }
         [ConfigurationProperty("emails", IsDefaultCollection = false)]
         public EmailElementCollection Emails
         {
