@@ -40,7 +40,8 @@ namespace backup_manager
                     backupManager.Init();
 
                     var conf = servicesProvider.GetRequiredService<IConfigurator>();
-                    conf.SaveAdminSettings(new Login (3, "admLogin", "logSalt", "admPass", "passSalt"));
+                    //conf.SaveAdminSettings(new Login (3, "admLogin", "logSalt", "admPass", "passSalt"));
+                    var deviceSettings = conf.LoadDeviceSettings(conf.LoadLoginSettings());
 
                     Console.WriteLine("Press ANY key to exit");
                     //Console.ReadKey();

@@ -17,7 +17,7 @@ namespace backup_manager.Settings.CheckObject
             get { return CheckObject((string)this["backupCmdType"]); }
             set { this["backupCmdType"] = value; }
         }
-        [ConfigurationProperty("name", IsRequired = false)]
+        [ConfigurationProperty("name", IsRequired = true)]
         public string DeviceName
         {
             get { return CheckObject((string)this["name"]); }

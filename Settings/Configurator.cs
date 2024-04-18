@@ -4,6 +4,7 @@ using backup_manager.Model;
 using backup_manager.Settings.CheckObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
+using Microsoft.Extensions.Logging;
 using System.Configuration;
 using System.Linq;
 
@@ -11,13 +12,23 @@ namespace backup_manager.Settings
 {
     class Configurator : IConfigurator
     {
+        private readonly ILogger<Configurator> loggerManager;
+
         enum SectionTypes
         {
             Device,
             Mail
         }
-        public Configurator()
+        enum BackupCmdTypes
         {
+            Default,
+            HP,
+            Cisco
+        }
+        public Configurator(ILogger<Configurator> loggerManager)
+        {
+            this.loggerManager = loggerManager;
+            loggerManager.LogInformation("TEST FROM CONF");
         }
         #region User Helpers Devices, Emails
         private Configuration LoadConfig()
@@ -41,21 +52,24 @@ namespace backup_manager.Settings
 
             return config;
         }
-        public List<(string, string, string, string)> LoadLoginSettings()
+        public List<Model.Login> LoadLoginSettings()
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            List<(string, string, string, string)> reqs = [];
+            List<Model.Login> logins = [];
 
             foreach (LoginElement confReq in myConfig.Logins)
             {
-                reqs.Add((confReq.LoginData, confReq.LoginSalt, confReq.PassData, confReq.PassSalt));
+                int loginId = 0;
+                int.TryParse(confReq.Id, out loginId);
+
+                logins.Add(new Model.Login(loginId, confReq.LoginData, confReq.LoginSalt, confReq.PassData, confReq.PassSalt));
             }
 
-            return reqs;
+            return logins;
         }
-        public void SaveAdminSettings(backup_manager.Model.Login login)
+        public void SaveAdminSettings(Model.Login login)
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
@@ -76,7 +90,7 @@ namespace backup_manager.Settings
 
             myConfig.CurrentConfiguration.Save(ConfigurationSaveMode.Minimal);
         }
-        public List<Device> LoadDeviceSettings()
+        public List<Device> LoadDeviceSettings(List<Model.Login> logins = null)
         {
             List<Device> devices = [];
 
@@ -94,6 +108,38 @@ namespace backup_manager.Settings
                 else
                 {
                     throw new Exception("Null DeviceName setting exception.");
+                }
+
+                int backupType = 0;
+                int.TryParse(deviceSetting.BackupCmdType, out backupType);
+
+                switch(backupType)
+                {
+                    default:
+                        device.BackupCmdType = (int)BackupCmdTypes.Default;
+                        break;
+                    case 1:
+                        device.BackupCmdType = (int)BackupCmdTypes.HP;
+                        break;
+                    case 2:
+                        device.BackupCmdType = (int)BackupCmdTypes.Cisco;
+                        break;
+                }
+
+                if(!string.IsNullOrEmpty(deviceSetting.LoginId) && logins.Count > 0)
+                {
+                    int loginId = 0;
+                    int.TryParse(deviceSetting.LoginId, out loginId);
+
+                    try
+                    {
+                        device.Login = logins.SingleOrDefault(l => l.LoginId == loginId);
+                    }
+                    catch(InvalidOperationException ex)
+                    {
+                        loggerManager.LogError("Duplicate login id in config section.", ex);
+                        throw;
+                    }
                 }
 
                 devices.Add(device);
@@ -120,14 +166,14 @@ namespace backup_manager.Settings
         }
         public List<Mail> LoadMailSettings()
         {
-            List<Mail> emails = new List<Mail>();
+            List<Mail> emails = new();
 
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
             foreach (EmailElement mailSetting in myConfig.Emails)
             {
-                Mail mail = new Mail();
+                Mail mail = new();
                 mail.Email = mailSetting.Email;
                 mail.Subject = mailSetting.Subject;
 

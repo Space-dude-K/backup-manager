@@ -1,4 +1,4 @@
-﻿namespace backup_manager
+﻿namespace backup_manager.Model
 {
     class Mail
     {
