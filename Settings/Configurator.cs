@@ -111,7 +111,17 @@ namespace backup_manager.Settings
 
             foreach (BackupPathElement pathEl in myConfig.BackupPaths)
             {
-                paths.Add(pathEl.Path);
+                try
+                {
+                    if (!string.IsNullOrEmpty(Path.GetFullPath(pathEl.Path)))
+                        paths.Add(pathEl.Path);
+                }
+                catch
+                {
+                    string err = $"Invalid path in path setting {pathEl.Path}";
+                    loggerManager.LogError($"{err}");
+                    throw new Exception(err);
+                }
             }
 
             return paths;

@@ -85,6 +85,7 @@ namespace backup_manager
 
                     var backupManager = servicesProvider.GetRequiredService<IBackupManager>();
                     var deviceConfigs = conf.LoadDeviceSettings(conf.LoadLoginSettings());
+                    var backupPaths = conf.LoadPathSettings();
 
                     backupManager.Init(deviceConfigs, new List<string>());
                 }

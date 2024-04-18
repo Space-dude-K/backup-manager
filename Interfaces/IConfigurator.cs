@@ -6,6 +6,7 @@ namespace backup_manager.Interfaces
     {
         List<Device> LoadDeviceSettings(List<Login> logins = null);
         List<Login> LoadLoginSettings(bool loadAsPlainText = true);
+        List<string> LoadPathSettings();
         void SaveLoginSettings(Login login);
         void SaveSmtpReqSettings(string mailLogin, string mailLoginSalt, string mailPassword, string mailPasswordSalt);
     }
