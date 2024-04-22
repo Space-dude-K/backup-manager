@@ -1,4 +1,7 @@
-﻿namespace backup_manager
+﻿using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+
+namespace backup_manager
 {
     public static class Extensions
     {
@@ -28,6 +31,22 @@
                     return false;
                 }
             });
+        }
+        public static string GetDisplayAttributeFrom(this Enum enumValue, Type enumType)
+        {
+            string displayName = "";
+            MemberInfo info = enumType.GetMember(enumValue.ToString()).First();
+
+            if (info != null && info.CustomAttributes.Any())
+            {
+                DisplayAttribute nameAttr = info.GetCustomAttribute<DisplayAttribute>();
+                displayName = nameAttr != null ? nameAttr.Name : enumValue.ToString();
+            }
+            else
+            {
+                displayName = enumValue.ToString();
+            }
+            return displayName;
         }
     }
 }
