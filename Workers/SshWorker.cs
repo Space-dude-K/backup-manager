@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using backup_manager.Model;
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static backup_manager.Model.Enums;
 
 namespace backup_manager.BackupWorkers
 {
@@ -17,9 +19,11 @@ namespace backup_manager.BackupWorkers
             this.logger = logger;
         }
 
-        static string ConnectAndDownload(string address, string login, string password, string backupCmd)
+        static string ConnectAndDownload(Device device)
         {
-            using (var client = new SshClient(address, login, password))
+            var backupCmd = device.BackupCmdType.GetDisplayAttributeFrom(typeof(BackupCmdTypes));
+
+            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
                 client.Connect();
 

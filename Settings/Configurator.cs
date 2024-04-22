@@ -146,11 +146,14 @@ namespace backup_manager.Settings
                 if (deviceSetting.DeviceName != string.Empty)
                 {
                     device.Name = deviceSetting.DeviceName;
+                    
                 }
                 else
                 {
                     throw new Exception("Null DeviceName setting exception.");
                 }
+
+                device.SerialNumber = deviceSetting.SerialNumber;
 
                 Enum.TryParse(deviceSetting.BackupCmdType, true, out BackupCmdTypes backupType);
                 device.BackupCmdType = backupType;
