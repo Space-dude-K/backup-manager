@@ -128,7 +128,7 @@ namespace backup_manager.Settings
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
             var sftpPath = string.IsNullOrWhiteSpace(myConfig.BackupPaths.SftpTempFolder) 
-                ? Environment.CurrentDirectory : myConfig.BackupPaths.SftpTempFolder;
+                ? Path.Combine(Environment.CurrentDirectory, "SftpTemp") : myConfig.BackupPaths.SftpTempFolder;
 
             return sftpPath;
         }
@@ -152,21 +152,8 @@ namespace backup_manager.Settings
                     throw new Exception("Null DeviceName setting exception.");
                 }
 
-                int backupType = 0;
-                int.TryParse(deviceSetting.BackupCmdType, out backupType);
-
-                switch(backupType)
-                {
-                    default:
-                        device.BackupCmdType = (int)BackupCmdTypes.Default;
-                        break;
-                    case 1:
-                        device.BackupCmdType = (int)BackupCmdTypes.HP;
-                        break;
-                    case 2:
-                        device.BackupCmdType = (int)BackupCmdTypes.Cisco;
-                        break;
-                }
+                Enum.TryParse(deviceSetting.BackupCmdType, true, out BackupCmdTypes backupType);
+                device.BackupCmdType = backupType;
 
                 if(!string.IsNullOrEmpty(deviceSetting.LoginId) && logins.Count > 0)
                 {

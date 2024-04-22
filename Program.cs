@@ -13,6 +13,7 @@ using System.Configuration;
 using System.Net;
 using System.Xml;
 using Tftp.Net;
+using static backup_manager.Model.Enums;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace backup_manager
@@ -86,6 +87,13 @@ namespace backup_manager
                     var backupManager = servicesProvider.GetRequiredService<IBackupManager>();
                     var deviceConfigs = conf.LoadDeviceSettings(conf.LoadLoginSettings());
                     var backupPaths = conf.LoadPathSettings();
+                    var sftpTempPath = conf.LoadSftpTempFolderPath();
+
+                    if(deviceConfigs.Any(d => d.BackupCmdType == BackupCmdTypes.HP))
+                    {
+                        var sftpServer = servicesProvider.GetRequiredService<ISftpServer>();
+                        sftpServer.RunSftpServer(sftpTempPath);
+                    }
 
                     backupManager.Init(deviceConfigs, backupPaths);
                 }

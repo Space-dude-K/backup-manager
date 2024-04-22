@@ -1,4 +1,5 @@
 ﻿using backup_manager.Interfaces;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using Tftp.Net;
 
@@ -6,29 +7,30 @@ namespace backup_manager
 {
     internal class SftpServer : ISftpServer
     {
-        private readonly string serverDir;
+        private string serverDir;
+        private readonly ILogger<SftpServer> logger;
 
-        public SftpServer()
+        public SftpServer(ILogger<SftpServer> logger)
         {
-            Console.WriteLine("SFTP init.");
+            this.logger = logger;
         }
-        public void RunSftpServer()
+        public void RunSftpServer(string sftpTempPath)
         {
-            Console.WriteLine("Running TFTP server for directory: " + serverDir);
-            Console.WriteLine();
-            Console.WriteLine("Press any key to close the server.");
+            serverDir = sftpTempPath;
+            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
 
             using (var server = new TftpServer())
             {
                 server.OnReadRequest += new TftpServerEventHandler(Server_OnReadRequest);
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
                 server.Start();
-                Console.Read();
+                //Console.Read();
             }
         }
         private void Server_OnWriteRequest(ITftpTransfer transfer, EndPoint client)
         {
-            String file = Path.Combine(serverDir, transfer.Filename);
+            string backupSubFolder = "";
+            String file = Path.Combine(serverDir, backupSubFolder, transfer.Filename);
 
             if (File.Exists(file))
             {
@@ -43,7 +45,7 @@ namespace backup_manager
         private void Server_OnReadRequest(ITftpTransfer transfer, EndPoint client)
         {
             String path = Path.Combine(serverDir, transfer.Filename);
-            FileInfo file = new FileInfo(path);
+            FileInfo file = new(path);
 
             //Is the file within the server directory?
             if (!file.FullName.StartsWith(serverDir, StringComparison.InvariantCultureIgnoreCase))
@@ -86,7 +88,7 @@ namespace backup_manager
         }
         private void OutputTransferStatus(ITftpTransfer transfer, string message)
         {
-            Console.WriteLine("[" + transfer.Filename + "] " + message);
+            logger.LogInformation("[" + transfer.Filename + "] " + message);
         }
     }
 }

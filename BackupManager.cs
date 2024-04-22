@@ -38,7 +38,7 @@ namespace backup_manager
                 {
                     switch(device.BackupCmdType)
                     {
-                        case (int)BackupCmdTypes.HP:
+                        case BackupCmdTypes.HP:
 
                             break;
                     }    

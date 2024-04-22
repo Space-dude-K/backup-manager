@@ -2,6 +2,6 @@
 {
     internal interface ISftpServer
     {
-        void RunSftpServer();
+        void RunSftpServer(string sftpTempPath);
     }
 }
