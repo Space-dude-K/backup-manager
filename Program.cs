@@ -87,7 +87,7 @@ namespace backup_manager
                     var deviceConfigs = conf.LoadDeviceSettings(conf.LoadLoginSettings());
                     var backupPaths = conf.LoadPathSettings();
 
-                    backupManager.Init(deviceConfigs, new List<string>());
+                    backupManager.Init(deviceConfigs, backupPaths);
                 }
             }
             catch (Exception ex)

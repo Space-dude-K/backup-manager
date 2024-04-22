@@ -6,6 +6,7 @@ using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using Microsoft.Extensions.Logging;
 using System.Configuration;
+using static backup_manager.Model.Enums;
 
 namespace backup_manager.Settings
 {
@@ -19,12 +20,7 @@ namespace backup_manager.Settings
             Device,
             Mail
         }
-        enum BackupCmdTypes
-        {
-            Default,
-            HP,
-            Cisco
-        }
+        
         public Configurator(ILogger<Configurator> loggerManager, ICypher cypher)
         {
             this.loggerManager = loggerManager;
@@ -42,7 +38,7 @@ namespace backup_manager.Settings
                     //Environment.GetCommandLineArgs()[0]+ ".exe";
 #endif
 
-            string exePath = System.IO.Path.Combine(Environment.CurrentDirectory, applicationName);
+            string exePath = Path.Combine(Environment.CurrentDirectory, applicationName);
 
             Console.WriteLine("Opening conf -> " + exePath);
 
@@ -125,6 +121,16 @@ namespace backup_manager.Settings
             }
 
             return paths;
+        }
+        public string LoadSftpTempFolderPath()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            var sftpPath = string.IsNullOrWhiteSpace(myConfig.BackupPaths.SftpTempFolder) 
+                ? Environment.CurrentDirectory : myConfig.BackupPaths.SftpTempFolder;
+
+            return sftpPath;
         }
         public List<Device> LoadDeviceSettings(List<Model.Login> logins = null)
         {

@@ -16,5 +16,11 @@ namespace backup_manager.Settings.BackupPaths
 
             return ((BackupPathElement)element).Path;
         }
+        [ConfigurationProperty("sftpTempFolder", IsDefaultCollection = false)]
+        public string SftpTempFolder
+        {
+            get { return (string)this["sftpTempFolder"]; }
+            set { this["sftpTempFolder"] = value; }
+        }
     }
 }

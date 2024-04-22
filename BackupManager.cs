@@ -3,6 +3,8 @@ using backup_manager.Model;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System;
+using System.IO.Pipes;
+using static backup_manager.Model.Enums;
 
 namespace backup_manager
 {
@@ -18,7 +20,34 @@ namespace backup_manager
         }
         public void Init(List<Device> devices, List<string> backupLocations)
         {
-            loggerManager.LogInformation($"Backup manager init for {devices.Count}.");
+            loggerManager.LogInformation($"Backup manager init for {devices.Count} and {backupLocations.Count} paths.");
+
+            if(backupLocations.Count == 0)
+            {
+                loggerManager.LogInformation($"No copy paths was found.");
+            }
+            else if(devices.Count == 0)
+            {
+                loggerManager.LogInformation($"No devices was found.");
+            }
+            else
+            {
+                loggerManager.LogInformation($"Init backup process ...");
+
+                foreach(var device in devices)
+                {
+                    switch(device.BackupCmdType)
+                    {
+                        case (int)BackupCmdTypes.HP:
+
+                            break;
+                    }    
+                }
+            }
+        }
+        private void GetBackupType()
+        {
+
         }
         string ConnectAndDownload(string sshClientAddress, string backupCmd)
         {

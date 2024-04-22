@@ -15,7 +15,6 @@ namespace backup_manager.Settings.CheckObject
                 throw new ArgumentNullException("IpDataArgumentNullException");
 
             return ((CheckObjectElement)element).ObjectIp;
-            //return element;
         }
         [ConfigurationProperty("loggerPath", IsDefaultCollection = false)]
         public string Loggerpath
