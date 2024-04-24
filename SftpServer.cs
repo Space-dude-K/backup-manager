@@ -1,7 +1,5 @@
 ﻿using backup_manager.Interfaces;
 using Microsoft.Extensions.Logging;
-using System.Globalization;
-using System;
 using System.Net;
 using Tftp.Net;
 using backup_manager.Model;

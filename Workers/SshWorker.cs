@@ -17,7 +17,35 @@ namespace backup_manager.BackupWorkers
         {
             this.logger = logger;
         }
+        public string ConnectAndDownloadViaShellChannel(Device device, string backupServerAddress, string backupCmd)
+        {
+            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            {
+                client.Connect();
 
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+
+                logger.LogInformation($"Run cmd -> {backupCmd}");
+
+                SshCommand cmd = client.CreateCommand(backupCmd);
+                cmd.Execute();
+                string execRes = cmd.Result;
+
+                /*var cmd = client.RunCommand(backupCmd);
+                cmd.CommandTimeout = new TimeSpan(0, 0, 0, 50);
+                var execRes = cmd.Execute();*/
+
+                if (!string.IsNullOrEmpty(cmd.Error))
+                    logger.LogError($"Error: {cmd.Error}");
+
+                logger.LogInformation($"Exec results: {execRes}");
+
+                client.Disconnect();
+
+                return execRes;
+            }
+        }
         public string ConnectAndDownload(Device device, string backupServerAddress, string backupCmd)
         {
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))

@@ -2,6 +2,7 @@
 using System.Net;
 using System.Globalization;
 using backup_manager.Model;
+using System.Text.RegularExpressions;
 
 namespace backup_manager
 {
@@ -24,9 +25,9 @@ namespace backup_manager
         {
             switch (type)
             {
-                case Enums.BackupCmdTypes.HP:
-                    return "NetworkHardware";
                 case Enums.BackupCmdTypes.Cisco:
+                case Enums.BackupCmdTypes.HP:
+                case Enums.BackupCmdTypes.HP_shell:
                     return "NetworkHardware";
                 case Enums.BackupCmdTypes.Default:
                 default:
@@ -35,7 +36,7 @@ namespace backup_manager
         }
         internal static string RemoveInvalidChars(string filename)
         {
-            return string.Concat(filename.Split(Path.GetInvalidFileNameChars()));
+            return Regex.Replace(string.Concat(filename.Split(Path.GetInvalidFileNameChars())), @"\s+", "");
         }
         internal static string GetBackuFilePath(string ip, string deviceName)
         {
