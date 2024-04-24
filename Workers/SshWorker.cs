@@ -1,16 +1,15 @@
-﻿using backup_manager.Model;
+﻿using backup_manager.Interfaces;
+using backup_manager.Model;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
+using System.Threading;
+using System.Xml.Linq;
 using static backup_manager.Model.Enums;
 
 namespace backup_manager.BackupWorkers
 {
-    internal class SshWorker
+    internal class SshWorker : ISshWorker
     {
         private readonly ILogger<SshWorker> logger;
 
@@ -19,33 +18,71 @@ namespace backup_manager.BackupWorkers
             this.logger = logger;
         }
 
-        static string ConnectAndDownload(Device device)
+        public string ConnectAndDownload(Device device, string backupServerAddress, string backupCmd)
         {
-            var backupCmd = device.BackupCmdType.GetDisplayAttributeFrom(typeof(BackupCmdTypes));
-
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
                 client.Connect();
 
-                Console.WriteLine($"Conn info: {client.ConnectionInfo.Host + " "
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
                     + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                Console.WriteLine($"Run cmd -> {backupCmd}");
 
-                var cmd = client.RunCommand(backupCmd);
+                logger.LogInformation($"Run cmd -> {backupCmd}");
+
+                SshCommand cmd = client.CreateCommand(backupCmd);
+                cmd.Execute();
+                string execRes = cmd.Result;
+
+                /*var cmd = client.RunCommand(backupCmd);
                 cmd.CommandTimeout = new TimeSpan(0, 0, 0, 50);
-                var execRes = cmd.Execute();
+                var execRes = cmd.Execute();*/
 
                 if (!string.IsNullOrEmpty(cmd.Error))
-                    Console.WriteLine($"Error: {cmd.Error}");
+                    logger.LogError($"Error: {cmd.Error}");
 
-                Console.WriteLine($"Exec results: {execRes}");
+                logger.LogInformation($"Exec results: {execRes}");
 
                 client.Disconnect();
 
                 return execRes;
             }
         }
-        static async Task<string> ConnectAndDownloadAsync(string address, string login, string password, string backupCmd)
+        public async Task<string> ConnectAndDownloadAsync(Device device, string backupServerAddress, string backupCmd, 
+            int timeOutInMs = 20000)
+        {
+            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            {
+                CancellationTokenSource cts = new(timeOutInMs);
+
+                await client.ConnectAsync(cts.Token);
+
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                logger.LogInformation($"Run cmd -> {backupCmd}");
+
+                var cmd = client.RunCommand(backupCmd);
+                var execRes = cmd.BeginExecute();
+                bool signaled = await execRes.AsyncWaitHandle.WaitOneAsync(10000);
+
+                if (signaled)
+                {
+                    logger.LogInformation("Signal of completion received");
+                }
+                else
+                {
+                    logger.LogInformation("Waiting signal timed out");
+                }
+
+                var execEndRes = cmd.EndExecute(execRes);
+
+                logger.LogInformation($"Exec results: {execEndRes}");
+
+                client.Disconnect();
+
+                return execEndRes;
+            }
+        }
+        async Task<string> ConnectAndDownloadAsync1(string address, string login, string password, string backupCmd)
         {
             string expectedFingerPrint = "LKOy5LvmtEe17S4lyxVXqvs7uPMy+yF79MQpHeCs/Qo";
 

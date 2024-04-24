@@ -1,36 +1,87 @@
 ﻿using backup_manager.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System;
 using System.Net;
 using Tftp.Net;
+using backup_manager.Model;
 
 namespace backup_manager
 {
     internal class SftpServer : ISftpServer
     {
+        private bool isFinished;
         private string serverDir;
         private readonly ILogger<SftpServer> logger;
+        private readonly ISshWorker sshWorker;
 
-        public SftpServer(ILogger<SftpServer> logger)
+        public SftpServer(ILogger<SftpServer> logger, ISshWorker sshWorker)
         {
             this.logger = logger;
+            this.sshWorker = sshWorker;
         }
-        public void RunSftpServer(string sftpTempPath)
+        public bool RunSftpServer(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
         {
             serverDir = sftpTempPath;
+
+            if (!Directory.Exists(serverDir))
+                Directory.CreateDirectory(serverDir);
+
             logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
 
             using (var server = new TftpServer())
             {
                 server.OnReadRequest += new TftpServerEventHandler(Server_OnReadRequest);
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
+
                 server.Start();
-                //Console.Read();
+                var res = sshWorker
+                    .ConnectAndDownload(device, backupServerAddress, backupCmd);
+
+                //logger.LogInformation($"Ssh worker result: {res}");
+
+                while (!isFinished)
+                {
+                }
+
+                logger.LogInformation("Tftp server completed dl request.");
             }
+
+            return isFinished;
+        }
+        public async Task<bool> RunSftpServerAsync(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
+        {
+            serverDir = sftpTempPath;
+
+            if(!Directory.Exists(serverDir))
+                Directory.CreateDirectory(serverDir);
+
+            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
+
+            using (var server = new TftpServer())
+            {
+                server.OnReadRequest += new TftpServerEventHandler(Server_OnReadRequest);
+                server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
+
+                server.Start();
+                var res = sshWorker
+                    .ConnectAndDownload(device, backupServerAddress, backupCmd);
+
+                //logger.LogInformation($"Ssh worker result: {res}");
+
+                while (!isFinished)
+                {
+                    await Task.Delay(100);
+                }
+
+                logger.LogInformation("Tftp server completed dl request.");
+            }
+
+            return isFinished;
         }
         private void Server_OnWriteRequest(ITftpTransfer transfer, EndPoint client)
         {
-            string backupSubFolder = "";
-            String file = Path.Combine(serverDir, backupSubFolder, transfer.Filename);
+            string file = Path.Combine(serverDir, transfer.Filename);
 
             if (File.Exists(file))
             {
@@ -44,10 +95,13 @@ namespace backup_manager
         }
         private void Server_OnReadRequest(ITftpTransfer transfer, EndPoint client)
         {
-            String path = Path.Combine(serverDir, transfer.Filename);
+            string path = Path.Combine(serverDir, transfer.Filename);
+
+            logger.LogInformation($"Server dl: {path}");
+
             FileInfo file = new(path);
 
-            //Is the file within the server directory?
+            // Is the file within the server directory?
             if (!file.FullName.StartsWith(serverDir, StringComparison.InvariantCultureIgnoreCase))
             {
                 CancelTransfer(transfer, TftpErrorPacket.AccessViolation);
@@ -67,20 +121,25 @@ namespace backup_manager
             transfer.OnProgress += new TftpProgressHandler(Transfer_OnProgress);
             transfer.OnError += new TftpErrorHandler(Transfer_OnError);
             transfer.OnFinished += new TftpEventHandler(Transfer_OnFinished);
+
             transfer.Start(stream);
         }
         private void CancelTransfer(ITftpTransfer transfer, TftpErrorPacket reason)
         {
             OutputTransferStatus(transfer, "Cancelling transfer: " + reason.ErrorMessage);
+
             transfer.Cancel(reason);
+            isFinished = true;
         }
         private void Transfer_OnError(ITftpTransfer transfer, TftpTransferError error)
         {
             OutputTransferStatus(transfer, "Error: " + error);
+            isFinished = true;
         }
         private void Transfer_OnFinished(ITftpTransfer transfer)
         {
-            OutputTransferStatus(transfer, "Finished");
+            OutputTransferStatus(transfer, "Finished: " + transfer.Filename);
+            isFinished = true;
         }
         private void Transfer_OnProgress(ITftpTransfer transfer, TftpTransferProgress progress)
         {

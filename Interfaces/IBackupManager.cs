@@ -9,6 +9,6 @@ namespace backup_manager.Interfaces
 {
     internal interface IBackupManager
     {
-        void Init(List<Device> devices, List<string> backupLocations);
+        Task Init(List<Device> devices, List<string> backupLocations, string backupSftpFolder);
     }
 }

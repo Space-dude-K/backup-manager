@@ -1,7 +1,10 @@
-﻿namespace backup_manager.Interfaces
+﻿using backup_manager.Model;
+
+namespace backup_manager.Interfaces
 {
     internal interface ISftpServer
     {
-        void RunSftpServer(string sftpTempPath);
+        bool RunSftpServer(string sftpTempPath, Device device, string backupServerAddress, string backupCmd);
+        Task<bool> RunSftpServerAsync(string sftpTempPath, Device device, string backupServerAddress, string backupCmd);
     }
 }

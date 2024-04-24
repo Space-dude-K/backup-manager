@@ -4,7 +4,11 @@ using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System;
 using System.IO.Pipes;
+using System.Net.Sockets;
+using System.Net;
 using static backup_manager.Model.Enums;
+using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace backup_manager
 {
@@ -12,15 +16,19 @@ namespace backup_manager
     {
         private readonly ILogger<BackupManager> loggerManager;
         private readonly ISftpServer sftpServer;
+        private readonly ISshWorker sshWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ISftpServer sftpServer)
+        public BackupManager(ILogger<BackupManager> loggerManager, ISftpServer sftpServer, ISshWorker sshWorker)
         {
             this.loggerManager = loggerManager;
             this.sftpServer = sftpServer;
+            this.sshWorker = sshWorker;
         }
-        public void Init(List<Device> devices, List<string> backupLocations)
+        public async Task Init(List<Device> devices, List<string> backupLocations, string backupSftpFolder)
         {
             loggerManager.LogInformation($"Backup manager init for {devices.Count} and {backupLocations.Count} paths.");
+
+            List<Task> tasks = [];
 
             if(backupLocations.Count == 0)
             {
@@ -40,15 +48,30 @@ namespace backup_manager
                     {
                         case BackupCmdTypes.HP:
 
+                            var dtStr = DateTime.Now.ToString("ddMMyyyy-HHmmss.fff", CultureInfo.InvariantCulture);
+                            var deviceNameAndSn = Utils.RemoveInvalidChars(device.Name + "_" + device.SerialNumber);
+                            var fileName = (deviceNameAndSn + "_" + dtStr + ".cfg")
+                                .GetCleanFileName();
+                            var backupServerAddress = Utils.GetLocalIPAddress();
+                            var backupFolder = Path.Combine(backupSftpFolder, Utils.GetFolderNamePartForBackupParent(device.BackupCmdType),
+                                deviceNameAndSn);
+                            var backupCmd =
+                                device.BackupCmdType.GetDisplayAttributeFrom(typeof(BackupCmdTypes))
+                                .Replace("%addr%", backupServerAddress)
+                                .Replace("%file%", fileName);
+
+                            tasks.Add(sftpServer.RunSftpServerAsync(backupFolder, device, Utils.GetLocalIPAddress(), backupCmd));
+
+                            //var res = sshWorker.ConnectAndDownload(device, Utils.GetLocalIPAddress(), backupCmd);
+
                             break;
                     }    
                 }
             }
-        }
-        private void GetBackupType()
-        {
 
+            await Task.WhenAll(tasks);
         }
+        
         string ConnectAndDownload(string sshClientAddress, string backupCmd)
         {
             

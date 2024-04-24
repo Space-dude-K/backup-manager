@@ -1,4 +1,5 @@
-﻿using backup_manager.Cypher;
+﻿using backup_manager.BackupWorkers;
+using backup_manager.Cypher;
 using backup_manager.Interfaces;
 using backup_manager.Model;
 using backup_manager.Settings;
@@ -17,7 +18,7 @@ namespace backup_manager
         static string backupCmd = "backup startup-configuration to 10.10.200.37 test3.cfg";
         static string backupCmd1 = "copy running-configuration 10.10.200.37 run.cfg";
         static string ServerDirectory = Environment.CurrentDirectory;
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var logger = LogManager.GetCurrentClassLogger();
             try
@@ -82,13 +83,13 @@ namespace backup_manager
                     var backupPaths = conf.LoadPathSettings();
                     var sftpTempPath = conf.LoadSftpTempFolderPath();
 
-                    if(deviceConfigs.Any(d => d.BackupCmdType == BackupCmdTypes.HP))
+                    /*if(deviceConfigs.Any(d => d.BackupCmdType == BackupCmdTypes.HP))
                     {
                         var sftpServer = servicesProvider.GetRequiredService<ISftpServer>();
-                        sftpServer.RunSftpServer(sftpTempPath);
-                    }
+                        Task.Run(() => sftpServer.RunSftpServer(sftpTempPath));
+                    }*/
 
-                    backupManager.Init(deviceConfigs, backupPaths);
+                    await backupManager.Init(deviceConfigs, backupPaths, sftpTempPath);
                 }
             }
             catch (Exception ex)
@@ -111,6 +112,7 @@ namespace backup_manager
                   .AddSingleton<IConfigurator, Configurator>()
                   .AddTransient<ISftpServer, SftpServer>()
                   .AddTransient<IBackupManager, BackupManager>()
+                  .AddTransient<ISshWorker, SshWorker>()
                   .AddLogging(loggingBuilder =>
                   {
                       // configure Logging with NLog
