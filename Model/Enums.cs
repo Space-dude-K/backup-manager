@@ -9,6 +9,8 @@ namespace backup_manager.Model
             Default,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP,
+            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            HP_shell,
             Cisco
         }
     }
