@@ -3,7 +3,6 @@ using backup_manager.Model;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System.IO;
-using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Xml.Linq;
 using static backup_manager.Model.Enums;
@@ -24,18 +23,21 @@ namespace backup_manager.BackupWorkers
             {
                 client.Connect();
 
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+
                 logger.LogInformation($"Run cmd -> {backupCmd}");
 
-                var cmd = client.CreateCommand(backupCmd);
-                var asyncExecute = cmd.BeginExecute();
+                SshCommand cmd = client.CreateCommand(backupCmd);
+                cmd.Execute();
+                string execRes = cmd.Result;
 
-                cmd.OutputStream.CopyTo(Console.OpenStandardOutput());
-                cmd.EndExecute(asyncExecute);
+                /*var cmd = client.RunCommand(backupCmd);
+                cmd.CommandTimeout = new TimeSpan(0, 0, 0, 50);
+                var execRes = cmd.Execute();*/
 
                 if (!string.IsNullOrEmpty(cmd.Error))
                     logger.LogError($"Error: {cmd.Error}");
-
-                string execRes = cmd.Result;
 
                 logger.LogInformation($"Exec results: {execRes}");
 
