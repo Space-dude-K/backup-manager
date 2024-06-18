@@ -3,6 +3,7 @@ using backup_manager.Cypher;
 using backup_manager.Interfaces;
 using backup_manager.Model;
 using backup_manager.Settings;
+using backup_manager.Workers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -112,7 +113,7 @@ namespace backup_manager
                   .AddSingleton<IConfigurator, Configurator>()
                   .AddTransient<ISftpServer, SftpServer>()
                   .AddTransient<IBackupManager, BackupManager>()
-                  .AddTransient<ISshWorker, SshWorker>()
+                  .AddTransient<ISshShellWorker, SshShellWorker>()
                   .AddLogging(loggingBuilder =>
                   {
                       // configure Logging with NLog
