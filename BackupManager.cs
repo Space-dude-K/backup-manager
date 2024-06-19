@@ -64,8 +64,6 @@ namespace backup_manager
                     switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.HP:
-                            //tasks.Add(sftpServer.RunSftpServerAsync(backupFolder, device, Utils.GetLocalIPAddress(), backupCmd));
-                            break;
                         case BackupCmdTypes.HP_shell:
                             tasks.Add(sshWorker.ConnectAndExecuteAsync(device, backupCmd));
                             //loggerManager.LogInformation("Add task.");
