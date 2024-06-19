@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using backup_manager.Model;
 using backup_manager.Interfaces;
+using System.Text;
 
 namespace backup_manager.Workers
 {
@@ -24,6 +25,7 @@ namespace backup_manager.Workers
         {
             this.logger = logger;
         }
+        // TODO. Async ssh shell calls with completion result.
         public async Task ConnectAndExecuteAsync(Device device, string cmd)
         {
             var connectionInfo =
@@ -49,17 +51,37 @@ namespace backup_manager.Workers
 
                 try
                 {
-                    var expectResult = await shell.BeginExpect(new ExpectAction("Press any key to continue", async (_) =>
+                    AsyncCallback onWorkDone = (ar) =>
                     {
-                        shell.WriteLine("\n");
-
-                        var expectInternalResult = await shell.BeginExpect(new ExpectAction("#", (_) =>
+                        /*
+                        AsyncCallback onInternalWorkDone = (ar) =>
+                        {
+                            logger.LogInformation("Internal work  done!");
+                        };
+                        var asyncInternalResult = shell.BeginExpect(onInternalWorkDone, new ExpectAction("#", (_) =>
                         {
                             shell.WriteLine(cmd);
-                        })).AsyncWaitHandle.WaitOneAsync(1000);
-                    })).AsyncWaitHandle.WaitOneAsync(2000);
+                            //await shell.WriteAsync(Encoding.ASCII.GetBytes(cmd).AsMemory(0, cmd.Length));
+                        }));
+                        asyncInternalResult.AsyncWaitHandle.WaitOne();
+                        var internalResult = shell.EndExpect(asyncInternalResult);
+                        */
+                        logger.LogInformation("External work done!");
+                    };
 
-                    logger.LogInformation($"Read: {shell.Read()}");
+                    shell.WriteLine("\n");
+                    //await shell.WriteAsync(Encoding.ASCII.GetBytes("\n").AsMemory(0, "\n".Length));
+
+                    var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction("#", (_) =>
+                    {
+                        shell.WriteLine(cmd);
+                        //await shell.WriteAsync(Encoding.ASCII.GetBytes(cmd).AsMemory(0, cmd.Length));
+                    }));
+
+                    asyncExternalResult.AsyncWaitHandle.WaitOne();
+                    var result = shell.EndExpect(asyncExternalResult);
+
+                    //logger.LogInformation($"External work result: {result}");
                 }
                 catch (Exception ex)
                 {
