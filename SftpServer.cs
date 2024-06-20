@@ -18,7 +18,7 @@ namespace backup_manager
             this.logger = logger;
             this.sshWorker = sshWorker;
         }
-        public bool RunSftpServer(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
+        public bool RunSftpServer(string sftpTempPath, string backupServerAddress, string backupCmd)
         {
             serverDir = sftpTempPath;
 
@@ -33,10 +33,6 @@ namespace backup_manager
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
 
                 server.Start();
-                var res = sshWorker
-                    .ConnectAndDownload(device, backupServerAddress, backupCmd);
-
-                //logger.LogInformation($"Ssh worker result: {res}");
 
                 while (!isFinished)
                 {
@@ -47,18 +43,9 @@ namespace backup_manager
 
             return isFinished;
         }
-<<<<<<< HEAD
         public async Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
-=======
-        public async Task<bool> RunSftpServerAsync(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
->>>>>>> main
         {
-            serverDir = sftpTempPath;
-
-            if(!Directory.Exists(serverDir))
-                Directory.CreateDirectory(serverDir);
-
-            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
+            InitServerDir(tempDir);
 
             using (var server = new TftpServer())
             {
@@ -66,33 +53,27 @@ namespace backup_manager
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
 
                 server.Start();
-<<<<<<< HEAD
 
                 while (!isFinished)
                 {
-                    //logger.LogInformation("Waiting for connection ...");
                     logger.LogInformation("Waiting for connection ...");
 
                     await Task.Delay(serverDlTimeRangeInMs);
                 }
 
                 logger.LogInformation("Tftp server completed dl requests.");
-=======
-                var res = sshWorker
-                    .ConnectAndDownload(device, backupServerAddress, backupCmd);
-
-                //logger.LogInformation($"Ssh worker result: {res}");
-
-                while (!isFinished)
-                {
-                    await Task.Delay(100);
-                }
-
-                logger.LogInformation("Tftp server completed dl request.");
->>>>>>> main
             }
 
             return isFinished;
+        }
+        private void InitServerDir(string dir)
+        {
+            serverDir = dir;
+
+            if (!Directory.Exists(serverDir))
+                Directory.CreateDirectory(serverDir);
+
+            logger.LogInformation("Init TFTP server. Temp directory: " + serverDir);
         }
         private void Server_OnWriteRequest(ITftpTransfer transfer, EndPoint client)
         {
