@@ -9,20 +9,23 @@ namespace backup_manager
     internal class SftpServer : ISftpServer
     {
         private bool isFinished;
-        internal string serverDir;
+        private string serverDir;
         private readonly ILogger<SftpServer> logger;
-        private readonly ISshShellWorker sshWorker;
+        private readonly ISshWorker sshWorker;
 
-        public SftpServer(ILogger<SftpServer> logger, ISshShellWorker sshWorker)
+        public SftpServer(ILogger<SftpServer> logger, ISshWorker sshWorker)
         {
             this.logger = logger;
             this.sshWorker = sshWorker;
-
-            serverDir = Path.Combine(Environment.CurrentDirectory, "TempDir");
         }
-        public bool RunSftpServer(string tempDir, string backupServerAddress, string backupCmd)
+        public bool RunSftpServer(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
         {
-            InitServerDir(tempDir);
+            serverDir = sftpTempPath;
+
+            if (!Directory.Exists(serverDir))
+                Directory.CreateDirectory(serverDir);
+
+            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
 
             using (var server = new TftpServer())
             {
@@ -30,10 +33,8 @@ namespace backup_manager
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
 
                 server.Start();
-
-                //sshWorker.ConnectAndExecute(device, backupCmd);
-
-                //Task.Run(() => sshWorker.ConnectAndExecute(device, backupCmd));
+                var res = sshWorker
+                    .ConnectAndDownload(device, backupServerAddress, backupCmd);
 
                 //logger.LogInformation($"Ssh worker result: {res}");
 
@@ -46,9 +47,18 @@ namespace backup_manager
 
             return isFinished;
         }
+<<<<<<< HEAD
         public async Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
+=======
+        public async Task<bool> RunSftpServerAsync(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
+>>>>>>> main
         {
-            InitServerDir(tempDir);
+            serverDir = sftpTempPath;
+
+            if(!Directory.Exists(serverDir))
+                Directory.CreateDirectory(serverDir);
+
+            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
 
             using (var server = new TftpServer())
             {
@@ -56,6 +66,7 @@ namespace backup_manager
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
 
                 server.Start();
+<<<<<<< HEAD
 
                 while (!isFinished)
                 {
@@ -66,18 +77,22 @@ namespace backup_manager
                 }
 
                 logger.LogInformation("Tftp server completed dl requests.");
+=======
+                var res = sshWorker
+                    .ConnectAndDownload(device, backupServerAddress, backupCmd);
+
+                //logger.LogInformation($"Ssh worker result: {res}");
+
+                while (!isFinished)
+                {
+                    await Task.Delay(100);
+                }
+
+                logger.LogInformation("Tftp server completed dl request.");
+>>>>>>> main
             }
 
             return isFinished;
-        }
-        private void InitServerDir(string dir)
-        {
-            serverDir = dir;
-
-            if (!Directory.Exists(serverDir))
-                Directory.CreateDirectory(serverDir);
-
-            logger.LogInformation("Init TFTP server. Temp directory: " + serverDir);
         }
         private void Server_OnWriteRequest(ITftpTransfer transfer, EndPoint client)
         {
