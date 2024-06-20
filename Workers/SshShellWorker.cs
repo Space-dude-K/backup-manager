@@ -26,7 +26,6 @@ namespace backup_manager.Workers
             this.logger = logger;
         }
         // TODO. Async ssh shell calls with completion result.
-        // TODO. Async ssh shell calls with completion result.
         public async Task ConnectAndExecuteAsync(Device device, string cmd)
         {
             var connectionInfo =
