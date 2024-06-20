@@ -47,7 +47,11 @@ namespace backup_manager
 
             return isFinished;
         }
+<<<<<<< HEAD
+        public async Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
+=======
         public async Task<bool> RunSftpServerAsync(string sftpTempPath, Device device, string backupServerAddress, string backupCmd)
+>>>>>>> main
         {
             serverDir = sftpTempPath;
 
@@ -62,6 +66,18 @@ namespace backup_manager
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
 
                 server.Start();
+<<<<<<< HEAD
+
+                while (!isFinished)
+                {
+                    //logger.LogInformation("Waiting for connection ...");
+                    logger.LogInformation("Waiting for connection ...");
+
+                    await Task.Delay(serverDlTimeRangeInMs);
+                }
+
+                logger.LogInformation("Tftp server completed dl requests.");
+=======
                 var res = sshWorker
                     .ConnectAndDownload(device, backupServerAddress, backupCmd);
 
@@ -73,6 +89,7 @@ namespace backup_manager
                 }
 
                 logger.LogInformation("Tftp server completed dl request.");
+>>>>>>> main
             }
 
             return isFinished;
