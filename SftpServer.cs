@@ -43,14 +43,9 @@ namespace backup_manager
 
             return isFinished;
         }
-        public async Task<bool> RunSftpServerAsync(string sftpTempPath, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
+        public async Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
         {
-            serverDir = sftpTempPath;
-
-            if (!Directory.Exists(serverDir))
-                Directory.CreateDirectory(serverDir);
-
-            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
+            InitServerDir(tempDir);
 
             using (var server = new TftpServer())
             {
@@ -66,10 +61,19 @@ namespace backup_manager
                     await Task.Delay(serverDlTimeRangeInMs);
                 }
 
-                logger.LogInformation("Tftp server completed dl request.");
+                logger.LogInformation("Tftp server completed dl requests.");
             }
 
             return isFinished;
+        }
+        private void InitServerDir(string dir)
+        {
+            serverDir = dir;
+
+            if (!Directory.Exists(serverDir))
+                Directory.CreateDirectory(serverDir);
+
+            logger.LogInformation("Init TFTP server. Temp directory: " + serverDir);
         }
         private void Server_OnWriteRequest(ITftpTransfer transfer, EndPoint client)
         {

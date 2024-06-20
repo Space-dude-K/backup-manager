@@ -74,10 +74,12 @@ namespace backup_manager
                             //sshWorker.ConnectAndExecute(device, backupCmd);
                             break;
                     }  
-                }  
+                }
+
+                await Task.WhenAll(tasks);
             }
 
-            await Task.WhenAll(tasks);
+            await managerTask;
         }
         
         string ConnectAndDownload(string sshClientAddress, string backupCmd)
