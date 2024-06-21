@@ -5,6 +5,6 @@ namespace backup_manager.Interfaces
     internal interface ISshWorker
     {
         string ConnectAndDownload(Device device, string backupServerAddress, string backupCmd);
-        Task<string> ConnectAndDownloadAsync(Device device, string backupServerAddress, string backupCmd, int timeOutInMs = 20000);
+        Task<string> ConnectAndDownloadAsync(Device device, string backupCmd, int timeOutInMs = 20000);
     }
 }
