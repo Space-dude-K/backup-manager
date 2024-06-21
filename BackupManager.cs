@@ -66,12 +66,10 @@ namespace backup_manager
                     switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.HP:
+                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
                             break;
                         case BackupCmdTypes.HP_shell:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            //loggerManager.LogInformation("Add task.");
-                            //tasks.Add(Task.Run(() => sshWorker.ConnectAndExecute(device, backupCmd)));
-                            //sshWorker.ConnectAndExecute(device, backupCmd);
                             break;
                     }  
                 }

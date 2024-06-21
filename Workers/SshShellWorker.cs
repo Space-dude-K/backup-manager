@@ -43,6 +43,7 @@ namespace backup_manager.Workers
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
                     + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                logger.LogInformation($"Run cmd -> {cmd}");
 
                 var terminalMode = new Dictionary<TerminalModes, uint>();
                 terminalMode.Add(TerminalModes.ECHO, 53);
