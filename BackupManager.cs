@@ -47,7 +47,7 @@ namespace backup_manager
                 loggerManager.LogInformation($"Init backup process ...");
 
                 // TODO: Add parallel execution
-                managerTask = sftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress());
+                managerTask = sftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000);
 
                 foreach(var device in devices)
                 {
@@ -65,6 +65,9 @@ namespace backup_manager
 
                     switch (device.BackupCmdType)
                     {
+                        case BackupCmdTypes.Default:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
                         case BackupCmdTypes.HP:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
                             break;

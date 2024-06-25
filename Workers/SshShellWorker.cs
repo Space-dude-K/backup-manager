@@ -48,7 +48,7 @@ namespace backup_manager.Workers
                 var terminalMode = new Dictionary<TerminalModes, uint>();
                 terminalMode.Add(TerminalModes.ECHO, 53);
 
-                shell = client.CreateShellStream("", 0, 0, 0, 0, 4096, terminalMode);
+                shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
 
                 try
                 {
@@ -76,10 +76,13 @@ namespace backup_manager.Workers
                     var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction("#", (_) =>
                     {
                         shell.WriteLine(cmd);
+                        //logger.LogInformation($"Shell: {shell.ReadLine()}");
+
                         //await shell.WriteAsync(Encoding.ASCII.GetBytes(cmd).AsMemory(0, cmd.Length));
                     }));
 
-                    asyncExternalResult.AsyncWaitHandle.WaitOne();
+                    //asyncExternalResult.AsyncWaitHandle.WaitOne();
+                    var res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(2000);
                     var result = shell.EndExpect(asyncExternalResult);
 
                     //logger.LogInformation($"External work result: {result}");

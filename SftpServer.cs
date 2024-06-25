@@ -3,12 +3,12 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using Tftp.Net;
 using backup_manager.Model;
+using System.IO.Compression;
 
 namespace backup_manager
 {
     internal class SftpServer : ISftpServer
     {
-        private bool isFinished;
         private string serverDir;
         private readonly ILogger<SftpServer> logger;
         private readonly ISshWorker sshWorker;
@@ -17,31 +17,6 @@ namespace backup_manager
         {
             this.logger = logger;
             this.sshWorker = sshWorker;
-        }
-        public bool RunSftpServer(string sftpTempPath, string backupServerAddress, string backupCmd)
-        {
-            serverDir = sftpTempPath;
-
-            if (!Directory.Exists(serverDir))
-                Directory.CreateDirectory(serverDir);
-
-            logger.LogInformation("Running TFTP server. Temp directory: " + serverDir);
-
-            using (var server = new TftpServer())
-            {
-                server.OnReadRequest += new TftpServerEventHandler(Server_OnReadRequest);
-                server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
-
-                server.Start();
-
-                while (!isFinished)
-                {
-                }
-
-                logger.LogInformation("Tftp server completed dl request.");
-            }
-
-            return isFinished;
         }
         public async Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
         {
@@ -54,17 +29,18 @@ namespace backup_manager
 
                 server.Start();
 
-                while (!isFinished)
+                while (true)
                 {
                     logger.LogInformation("Waiting for connection ...");
 
                     await Task.Delay(serverDlTimeRangeInMs);
+                    break;
                 }
 
                 logger.LogInformation("Tftp server completed dl requests.");
             }
 
-            return isFinished;
+            return true;
         }
         private void InitServerDir(string dir)
         {
@@ -125,17 +101,32 @@ namespace backup_manager
             OutputTransferStatus(transfer, "Cancelling transfer: " + reason.ErrorMessage);
 
             transfer.Cancel(reason);
-            isFinished = true;
         }
         private void Transfer_OnError(ITftpTransfer transfer, TftpTransferError error)
         {
             OutputTransferStatus(transfer, "Error: " + error);
-            isFinished = true;
         }
+        // TODO. Archive
         private void Transfer_OnFinished(ITftpTransfer transfer)
         {
             OutputTransferStatus(transfer, "Finished: " + transfer.Filename);
-            isFinished = true;
+
+            /*var fileName = Path.GetFileNameWithoutExtension(transfer.Filename);
+            var fileNameFullPath = Path.Combine(serverDir, transfer.Filename);
+            var zipFile = fileName + ".zip";
+            var zipDir = Path.Combine(serverDir, "Archive");
+
+            if(!Directory.Exists(zipDir))
+                Directory.CreateDirectory(zipDir);
+
+            var zipFileFullPath = Path.Combine(zipDir, zipFile);
+
+            logger.LogInformation($"New archive -> {zipFileFullPath}");
+
+            //Utils.GetWriteStream
+            //Utils.SafelyCreateZipFromDirectory(fileNameFullPath, zipFileFullPath);
+
+            Task.Run(() => Utils.CreateArchive(zipFileFullPath, zipFileFullPath, zipFile));*/
         }
         private void Transfer_OnProgress(ITftpTransfer transfer, TftpTransferProgress progress)
         {

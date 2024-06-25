@@ -6,6 +6,7 @@ namespace backup_manager.Model
     {
         public enum BackupCmdTypes
         {
+            [Display(Name = "backup startup-configuration to %addr% %file%")]
             Default,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP,
