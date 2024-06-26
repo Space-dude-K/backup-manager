@@ -14,25 +14,31 @@ namespace backup_manager.Settings.CheckObject
         [ConfigurationProperty("backupCmdType", IsRequired = false)]
         public string BackupCmdType
         {
-            get { return CheckObject((string)this["backupCmdType"]); }
+            get { return (string)this["backupCmdType"]; }
             set { this["backupCmdType"] = value; }
         }
         [ConfigurationProperty("name", IsRequired = true)]
         public string DeviceName
         {
-            get { return CheckObject((string)this["name"]); }
+            get { return (string)this["name"]; }
             set { this["name"] = value; }
         }
         [ConfigurationProperty("sn", IsRequired = true)]
         public string SerialNumber
         {
-            get { return CheckObject((string)this["sn"]); }
+            get { return (string)this["sn"]; }
             set { this["sn"] = value; }
+        }
+        [ConfigurationProperty("cfgName", IsRequired = false)]
+        public string ConfigName
+        {
+            get { return (string)this["cfgName"]; }
+            set { this["cfgName"] = value; }
         }
         [ConfigurationProperty("loginId", IsRequired = false)]
         public string LoginId
         {
-            get { return CheckObject((string)this["loginId"]); }
+            get { return (string)this["loginId"]; }
             set { this["loginId"] = value; }
         }
         private string CheckObject(string rawStr)

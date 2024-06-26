@@ -5,6 +5,6 @@ namespace backup_manager.Interfaces
     internal interface ISshShellWorker
     {
         void ConnectAndExecute(Device device, string cmd);
-        Task ConnectAndExecuteAsync(Device device, string backupServerAddress);
+        Task ConnectAndExecuteAsync(Device device, string backupServerAddress, bool isConfigModeEnabled = false);
     }
 }

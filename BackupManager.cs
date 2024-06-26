@@ -60,6 +60,7 @@ namespace backup_manager
                         deviceNameAndSn);
                     var backupCmd =
                         device.BackupCmdType.GetDisplayAttributeFrom(typeof(BackupCmdTypes))
+                        .Replace("%configName%", device.ConfigName)
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
@@ -74,7 +75,31 @@ namespace backup_manager
                         case BackupCmdTypes.HP_shell:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
-                    }  
+                        case BackupCmdTypes.J9298A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9774A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9146A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9145A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9779A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9148A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9147A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9773A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                    }
                 }
 
                 await Task.WhenAll(tasks);
