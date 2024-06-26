@@ -157,8 +157,9 @@ namespace backup_manager.Settings
 
                 Enum.TryParse(deviceSetting.BackupCmdType, true, out BackupCmdTypes backupType);
                 device.BackupCmdType = backupType;
+                device.ConfigName = deviceSetting.ConfigName;
 
-                if(!string.IsNullOrEmpty(deviceSetting.LoginId) && logins.Count > 0)
+                if (!string.IsNullOrEmpty(deviceSetting.LoginId) && logins.Count > 0)
                 {
                     int loginId = 0;
                     int.TryParse(deviceSetting.LoginId, out loginId);

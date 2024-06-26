@@ -8,6 +8,7 @@ namespace backup_manager.Model
         public string Name { get; set; }
         public string SerialNumber { get; set; }
         public BackupCmdTypes BackupCmdType { get; set; }
+        public string ConfigName { get; set; }
         public Login Login {  get; set; }
     }
 }

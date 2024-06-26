@@ -26,7 +26,7 @@ namespace backup_manager.Workers
             this.logger = logger;
         }
         // TODO. Async ssh shell calls with completion result.
-        public async Task ConnectAndExecuteAsync(Device device, string cmd)
+        public async Task ConnectAndExecuteAsync(Device device, string cmd, bool isConfigModeEnabled = false)
         {
             var connectionInfo =
                 new ConnectionInfo(
@@ -48,41 +48,41 @@ namespace backup_manager.Workers
                 var terminalMode = new Dictionary<TerminalModes, uint>();
                 terminalMode.Add(TerminalModes.ECHO, 53);
 
-                shell = client.CreateShellStream("", 0, 0, 0, 0, 4096, terminalMode);
+                shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
 
                 try
                 {
                     AsyncCallback onWorkDone = (ar) =>
                     {
-                        /*
-                        AsyncCallback onInternalWorkDone = (ar) =>
-                        {
-                            logger.LogInformation("Internal work  done!");
-                        };
-                        var asyncInternalResult = shell.BeginExpect(onInternalWorkDone, new ExpectAction("#", (_) =>
-                        {
-                            shell.WriteLine(cmd);
-                            //await shell.WriteAsync(Encoding.ASCII.GetBytes(cmd).AsMemory(0, cmd.Length));
-                        }));
-                        asyncInternalResult.AsyncWaitHandle.WaitOne();
-                        var internalResult = shell.EndExpect(asyncInternalResult);
-                        */
                         logger.LogInformation("External work done!");
                     };
 
                     shell.WriteLine("\n");
-                    //await shell.WriteAsync(Encoding.ASCII.GetBytes("\n").AsMemory(0, "\n".Length));
 
-                    var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction("#", (_) =>
+                    var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction("#", async (_) =>
                     {
-                        shell.WriteLine(cmd);
-                        //await shell.WriteAsync(Encoding.ASCII.GetBytes(cmd).AsMemory(0, cmd.Length));
+                        if (isConfigModeEnabled)
+                        {
+                            shell.WriteLine("config");
+
+                            logger.LogInformation($"Cnfg result: {shell.ReadLine()}");
+
+                            var asyncExternalResultForConfig = shell.BeginExpect(onWorkDone, new ExpectAction("#", (_) =>
+                            {
+                                shell.WriteLine(cmd);
+                            }));
+
+                            var res = await asyncExternalResultForConfig.AsyncWaitHandle.WaitOneAsync(2000);
+                            var result = shell.EndExpect(asyncExternalResultForConfig);
+                        }
+                        else
+                        {
+                            shell.WriteLine(cmd);
+                        }
                     }));
 
-                    asyncExternalResult.AsyncWaitHandle.WaitOne();
+                    var res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
                     var result = shell.EndExpect(asyncExternalResult);
-
-                    //logger.LogInformation($"External work result: {result}");
                 }
                 catch (Exception ex)
                 {

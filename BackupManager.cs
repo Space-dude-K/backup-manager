@@ -47,7 +47,7 @@ namespace backup_manager
                 loggerManager.LogInformation($"Init backup process ...");
 
                 // TODO: Add parallel execution
-                managerTask = sftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress());
+                managerTask = sftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000);
 
                 foreach(var device in devices)
                 {
@@ -60,18 +60,49 @@ namespace backup_manager
                         deviceNameAndSn);
                     var backupCmd =
                         device.BackupCmdType.GetDisplayAttributeFrom(typeof(BackupCmdTypes))
+                        .Replace("%configName%", device.ConfigName)
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
                     switch (device.BackupCmdType)
                     {
+                        case BackupCmdTypes.Default:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
                         case BackupCmdTypes.HP:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
                             break;
                         case BackupCmdTypes.HP_shell:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
-                    }  
+                        case BackupCmdTypes.J9298A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9774A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9146A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9145A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9779A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9148A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9147A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9773A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.J9584A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                    }
                 }
 
                 await Task.WhenAll(tasks);
