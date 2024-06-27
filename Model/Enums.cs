@@ -26,7 +26,7 @@ namespace backup_manager.Model
             HP,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             J9773A,
-            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            [Display(Name = "copy config %configName% tftp %addr% %file%")]
             J9584A,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP_shell,

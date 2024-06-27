@@ -100,7 +100,7 @@ namespace backup_manager
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
                         case BackupCmdTypes.J9584A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
                             break;
                     }
                 }

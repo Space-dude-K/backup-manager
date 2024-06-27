@@ -26,7 +26,8 @@ namespace backup_manager.Workers
             this.logger = logger;
         }
         // TODO. Async ssh shell calls with completion result.
-        public async Task ConnectAndExecuteAsync(Device device, string cmd, bool isConfigModeEnabled = false)
+        public async Task ConnectAndExecuteAsync(Device device, string cmd, Enums.BackupCmdTypes backupCmdType = Enums.BackupCmdTypes.Default, 
+            bool isConfigModeEnabled = false)
         {
             var connectionInfo =
                 new ConnectionInfo(
@@ -81,7 +82,21 @@ namespace backup_manager.Workers
                         }
                     }));
 
-                    var res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
+                    bool res;
+
+                    // TODO. J9584A получает сигнал true сразу же после отправки команды isConfigModeEnabled
+                    if(backupCmdType != Enums.BackupCmdTypes.J9584A)
+                    {
+                        res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
+                    }
+                    else
+                    {
+                        await Task.Delay(3000);
+                        res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(1);
+                        //res = asyncExternalResult.CompletedSynchronously;
+                    }
+
+                    //var res = asyncExternalResult.AsyncWaitHandle.WaitOne();
                     var result = shell.EndExpect(asyncExternalResult);
                 }
                 catch (Exception ex)
