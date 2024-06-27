@@ -15,11 +15,11 @@ namespace backup_manager
     class BackupManager : IBackupManager
     {
         private readonly ILogger<BackupManager> loggerManager;
-        private readonly ISftpServer sftpServer;
+        private readonly ITftpServer sftpServer;
         private readonly ISshWorker sshWorker;
         private readonly ISshShellWorker sshShellWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ISftpServer sftpServer, ISshWorker sshWorker, ISshShellWorker sshShellWorker)
+        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer sftpServer, ISshWorker sshWorker, ISshShellWorker sshShellWorker)
         {
             this.loggerManager = loggerManager;
             this.sftpServer = sftpServer;
@@ -72,6 +72,15 @@ namespace backup_manager
                         case BackupCmdTypes.HP:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
                             break;
+                        case BackupCmdTypes.QSFP28:
+                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.JL256A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.JL072A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
                         case BackupCmdTypes.HP_shell:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
@@ -100,7 +109,7 @@ namespace backup_manager
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
                         case BackupCmdTypes.J9584A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
                             break;
                     }
                 }

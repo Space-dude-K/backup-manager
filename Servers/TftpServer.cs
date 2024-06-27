@@ -5,15 +5,15 @@ using Tftp.Net;
 using backup_manager.Model;
 using System.IO.Compression;
 
-namespace backup_manager
+namespace backup_manager.Servers
 {
-    internal class SftpServer : ISftpServer
+    internal class TftpServer : ITftpServer
     {
         private string serverDir;
-        private readonly ILogger<SftpServer> logger;
+        private readonly ILogger<TftpServer> logger;
         private readonly ISshWorker sshWorker;
 
-        public SftpServer(ILogger<SftpServer> logger, ISshWorker sshWorker)
+        public TftpServer(ILogger<TftpServer> logger, ISshWorker sshWorker)
         {
             this.logger = logger;
             this.sshWorker = sshWorker;
@@ -22,7 +22,7 @@ namespace backup_manager
         {
             InitServerDir(tempDir);
 
-            using (var server = new TftpServer())
+            using (var server = new Tftp.Net.TftpServer())
             {
                 server.OnReadRequest += new TftpServerEventHandler(Server_OnReadRequest);
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);

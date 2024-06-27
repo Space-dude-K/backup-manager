@@ -8,6 +8,12 @@ namespace backup_manager.Model
         {
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             Default,
+            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            QSFP28,
+            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            JL256A,
+            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            JL072A,
             [Display(Name = "copy config %configName% tftp %addr% %file%")]
             J9298A,
             [Display(Name = "copy config %configName% tftp %addr% %file%")]
@@ -26,8 +32,10 @@ namespace backup_manager.Model
             HP,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             J9773A,
-            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            [Display(Name = "copy config %configName% tftp %addr% %file%")]
             J9584A,
+            [Display(Name = "/system backup save name=%file%")]
+            Mikrotik,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP_shell,
             Cisco
