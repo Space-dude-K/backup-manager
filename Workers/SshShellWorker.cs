@@ -1,10 +1,8 @@
 ﻿using Renci.SshNet.Common;
 using Renci.SshNet;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using backup_manager.Model;
 using backup_manager.Interfaces;
-using System.Text;
 
 namespace backup_manager.Workers
 {
@@ -12,12 +10,6 @@ namespace backup_manager.Workers
     {
         SshClient sshClient;
         ShellStream shell;
-        string pwd = "";
-        string lastCommand = "";
-
-        static Regex prompt = new Regex("[a-zA-Z0-9_.-]*\\@[a-zA-Z0-9_.-]*\\:\\~[#$] ", RegexOptions.Compiled);
-        static Regex pwdPrompt = new Regex("password for .*\\:", RegexOptions.Compiled);
-        static Regex promptOrPwd = new Regex(prompt + "|" + pwdPrompt);
 
         private readonly ILogger<SshShellWorker> logger;
 
@@ -35,8 +27,6 @@ namespace backup_manager.Workers
                     22,
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
-
-            this.pwd = device.Login.AdminPass;
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
@@ -116,8 +106,6 @@ namespace backup_manager.Workers
                     22,
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
-
-            this.pwd = device.Login.AdminPass;
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
