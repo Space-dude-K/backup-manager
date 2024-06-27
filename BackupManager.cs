@@ -15,11 +15,11 @@ namespace backup_manager
     class BackupManager : IBackupManager
     {
         private readonly ILogger<BackupManager> loggerManager;
-        private readonly ISftpServer sftpServer;
+        private readonly ITftpServer sftpServer;
         private readonly ISshWorker sshWorker;
         private readonly ISshShellWorker sshShellWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ISftpServer sftpServer, ISshWorker sshWorker, ISshShellWorker sshShellWorker)
+        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer sftpServer, ISshWorker sshWorker, ISshShellWorker sshShellWorker)
         {
             this.loggerManager = loggerManager;
             this.sftpServer = sftpServer;

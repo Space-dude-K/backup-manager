@@ -34,6 +34,8 @@ namespace backup_manager.Model
             J9773A,
             [Display(Name = "copy config %configName% tftp %addr% %file%")]
             J9584A,
+            [Display(Name = "/system backup save name=%file%")]
+            Mikrotik,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP_shell,
             Cisco

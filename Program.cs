@@ -2,6 +2,7 @@
 using backup_manager.Cypher;
 using backup_manager.Interfaces;
 using backup_manager.Model;
+using backup_manager.Servers;
 using backup_manager.Settings;
 using backup_manager.Workers;
 using Microsoft.Extensions.Configuration;
@@ -111,7 +112,8 @@ namespace backup_manager
                   // Add DI Classes here
                   .AddSingleton<ICypher, Encryptor>()
                   .AddSingleton<IConfigurator, Configurator>()
-                  .AddTransient<ISftpServer, SftpServer>()
+                  .AddTransient<ITftpServer, TftpServer>()
+                  .AddTransient<IFtpServer, FtpServer>()
                   .AddTransient<IBackupManager, BackupManager>()
                   .AddTransient<ISshWorker, SshWorker>()
                   .AddTransient<ISshShellWorker, SshShellWorker>()

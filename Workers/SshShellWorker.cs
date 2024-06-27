@@ -98,6 +98,62 @@ namespace backup_manager.Workers
                 client.Disconnect();
             }
         }
+        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string cmd)
+        {
+            var connectionInfo =
+                new ConnectionInfo(
+                    device.Ip,
+                    22,
+                    device.Login.AdmLogin,
+                    new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
+
+            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            {
+                client.Connect();
+
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                logger.LogInformation($"Run cmd -> {cmd}");
+
+                var terminalMode = new Dictionary<TerminalModes, uint>();
+                terminalMode.Add(TerminalModes.ECHO, 53);
+
+                shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
+
+                try
+                {
+                    AsyncCallback onWorkDone = (ar) =>
+                    {
+                        logger.LogInformation("External work done!");
+                    };
+
+                    shell.WriteLine("\n");
+
+                    var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
+                    {
+                        shell.WriteLine(cmd);
+                    }));
+                    bool res;
+                    res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
+
+                    var asyncExternalResultAfterBackup = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
+                    {
+                        shell.WriteLine(cmd);
+                    }));
+                    bool resAfterBackup;
+                    resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(10000);
+
+                    var result = shell.EndExpect(asyncExternalResult);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Exception - " + ex.Message);
+                    throw;
+                }
+
+                client.Disconnect();
+            }
+        }
         public void ConnectAndExecute(Device device, string cmd)
         {
             var connectionInfo =
