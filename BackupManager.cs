@@ -72,6 +72,15 @@ namespace backup_manager
                         case BackupCmdTypes.HP:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
                             break;
+                        case BackupCmdTypes.QSFP28:
+                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.JL256A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.JL072A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
                         case BackupCmdTypes.HP_shell:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
