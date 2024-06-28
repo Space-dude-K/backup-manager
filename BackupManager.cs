@@ -15,20 +15,23 @@ namespace backup_manager
     class BackupManager : IBackupManager
     {
         private readonly ILogger<BackupManager> loggerManager;
-        private readonly ITftpServer sftpServer;
+        private readonly ITftpServer tftpServer;
+        private readonly IFtpServer ftpServer;
         private readonly ISshWorker sshWorker;
         private readonly ISshShellWorker sshShellWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer sftpServer, ISshWorker sshWorker, ISshShellWorker sshShellWorker)
+        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, IFtpServer ftpServer,
+            ISshWorker sshWorker, ISshShellWorker sshShellWorker)
         {
             this.loggerManager = loggerManager;
-            this.sftpServer = sftpServer;
+            this.tftpServer = tftpServer;
+            this.ftpServer = ftpServer;
             this.sshWorker = sshWorker;
             this.sshShellWorker = sshShellWorker;
         }
         public async Task Init(List<Device> devices, List<string> backupLocations, string backupSftpFolder)
         {
-            Task managerTask = null;
+            List<Task> serverTasks = null;
 
             loggerManager.LogInformation($"Backup manager init for {devices.Count} and {backupLocations.Count} paths.");
 
@@ -47,9 +50,11 @@ namespace backup_manager
                 loggerManager.LogInformation($"Init backup process ...");
 
                 // TODO: Add parallel execution
-                managerTask = sftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000);
+                serverTasks = new List<Task>();
+                //serverTasks.Add(tftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000));
+                serverTasks.Add(ftpServer.RunFtpServerAsync(backupSftpFolder, 60000));
 
-                foreach(var device in devices)
+                foreach (var device in devices)
                 {
                     var dtStr = DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
                     var deviceNameAndSn = Utils.RemoveInvalidChars(device.Name + "_" + device.SerialNumber);
@@ -64,10 +69,13 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    switch (device.BackupCmdType)
+                    /*switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.Mikrotik:
+                            //tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd));
                             break;
                         case BackupCmdTypes.HP:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
@@ -111,13 +119,13 @@ namespace backup_manager
                         case BackupCmdTypes.J9584A:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
                             break;
-                    }
+                    }*/
                 }
 
                 await Task.WhenAll(tasks);
             }
 
-            await managerTask;
+            await Task.WhenAll(serverTasks);
         }
         
         string ConnectAndDownload(string sshClientAddress, string backupCmd)
