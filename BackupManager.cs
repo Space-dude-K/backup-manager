@@ -16,16 +16,16 @@ namespace backup_manager
     {
         private readonly ILogger<BackupManager> loggerManager;
         private readonly ITftpServer tftpServer;
-        private readonly IFtpServer ftpServer;
+        private readonly ISftpServer sftpServer;
         private readonly ISshWorker sshWorker;
         private readonly ISshShellWorker sshShellWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, IFtpServer ftpServer,
+        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
             ISshWorker sshWorker, ISshShellWorker sshShellWorker)
         {
             this.loggerManager = loggerManager;
             this.tftpServer = tftpServer;
-            this.ftpServer = ftpServer;
+            this.sftpServer = sftpServer;
             this.sshWorker = sshWorker;
             this.sshShellWorker = sshShellWorker;
         }
@@ -52,7 +52,7 @@ namespace backup_manager
                 // TODO: Add parallel execution
                 serverTasks = new List<Task>();
                 //serverTasks.Add(tftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000));
-                serverTasks.Add(ftpServer.RunFtpServerAsync(backupSftpFolder, 60000));
+                serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 60000));
 
                 foreach (var device in devices)
                 {

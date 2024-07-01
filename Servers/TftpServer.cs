@@ -18,7 +18,7 @@ namespace backup_manager.Servers
             this.logger = logger;
             this.sshWorker = sshWorker;
         }
-        public async Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
+        public async Task<bool> RunTftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000)
         {
             InitServerDir(tempDir);
 

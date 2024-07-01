@@ -113,7 +113,7 @@ namespace backup_manager
                   .AddSingleton<ICypher, Encryptor>()
                   .AddSingleton<IConfigurator, Configurator>()
                   .AddTransient<ITftpServer, TftpServer>()
-                  .AddTransient<IFtpServer, FtpServer>()
+                  .AddTransient<ISftpServer, SftpServer>()
                   .AddTransient<IBackupManager, BackupManager>()
                   .AddTransient<ISshWorker, SshWorker>()
                   .AddTransient<ISshShellWorker, SshShellWorker>()

@@ -2,6 +2,6 @@
 {
     internal interface ITftpServer
     {
-        Task<bool> RunSftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000);
+        Task<bool> RunTftpServerAsync(string tempDir, string backupServerAddress, int serverDlTimeRangeInMs = 30000);
     }
 }
