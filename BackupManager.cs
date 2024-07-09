@@ -54,8 +54,8 @@ namespace backup_manager
 
                 // TODO: Add parallel execution
                 serverTasks = new List<Task>();
-                serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000));
-                serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 60000));
+                serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
+                serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
                 foreach (var device in devices)
                 {
@@ -114,7 +114,7 @@ namespace backup_manager
 
                 await Task.WhenAll(tasks);
 
-                await Task.Delay(10000);
+                //await Task.Delay(10000);
 
                 loggerManager.LogInformation($"Tasks comleted.");
             }

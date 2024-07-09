@@ -25,23 +25,23 @@ namespace backup_manager.Workers
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
 
-            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            try
             {
-                ShellStream shell;
-
-                client.Connect();
-
-                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
-                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                logger.LogInformation($"Run cmd -> {cmd}");
-
-                var terminalMode = new Dictionary<TerminalModes, uint>();
-                terminalMode.Add(TerminalModes.ECHO, 53);
-
-                shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
-
-                try
+                using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
                 {
+                    ShellStream shell;
+
+                    client.Connect();
+
+                    logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                        + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                    logger.LogInformation($"Run cmd -> {cmd}");
+
+                    var terminalMode = new Dictionary<TerminalModes, uint>();
+                    terminalMode.Add(TerminalModes.ECHO, 53);
+
+                    shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
+
                     AsyncCallback onWorkDone = (ar) =>
                     {
                         logger.LogInformation("External work done!");
@@ -74,7 +74,7 @@ namespace backup_manager.Workers
                     bool res;
 
                     // TODO. J9584A получает сигнал true сразу же после отправки команды isConfigModeEnabled
-                    if(backupCmdType != Enums.BackupCmdTypes.J9584A)
+                    if (backupCmdType != Enums.BackupCmdTypes.J9584A)
                     {
                         res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
                     }
@@ -87,15 +87,17 @@ namespace backup_manager.Workers
 
                     //var res = asyncExternalResult.AsyncWaitHandle.WaitOne();
                     var result = shell.EndExpect(asyncExternalResult);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError("Exception - " + ex.Message);
-                    throw;
-                }
 
-                client.Disconnect();
+                    client.Disconnect();
+                }
             }
+            catch (Exception ex)
+            {
+                logger.LogError("Exception - " + ex.Message + $" for device: {device.Ip}");
+                throw;
+            }
+
+            
         }
         // TODO. Wait for completion.
         public async Task ConnectAndExecuteForMikrotikAsync(Device device, string backupCmd, string downloadCmd, string deleteCmd)
