@@ -69,7 +69,7 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    loggerManager.LogInformation($"Backup cmd {backupCmd}");
+                    //loggerManager.LogInformation($"Backup cmd {backupCmd}");
 
                     switch (device.BackupCmdType)
                     {
@@ -79,10 +79,11 @@ namespace backup_manager
                         case BackupCmdTypes.Mikrotik:
                             var downloadCmd = "/tool fetch " +
                                 "upload=yes " +
-                                $"url=\"sftp://{backupServerAddress}/sftp/{fileName}\" " +
+                                $"url=\"sftp://{backupServerAddress}/{fileName}\" " +
                                 "user=admin password=admin " +
-                                $"src-path={fileName} " +
-                                $"src-address={device.Ip}";
+                                $"src-path={fileName + ".backup"} " +
+                                $"src-address={device.Ip} " +
+                                "port=32";
                             tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd));
                             break;
                         case BackupCmdTypes.HP:
@@ -131,6 +132,8 @@ namespace backup_manager
                 }
 
                 await Task.WhenAll(tasks);
+
+                loggerManager.LogInformation($"Tasks comleted.");
             }
 
             await Task.WhenAll(serverTasks);

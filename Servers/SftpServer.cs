@@ -67,7 +67,7 @@ namespace backup_manager.Servers
             server.Keys.Add(rsaKey);
             server.Keys.Add(dssKey);
 
-            server.Bindings.Add(IPAddress.Any, 22);
+            server.Bindings.Add(IPAddress.Any, 32);
 
             server.Users.Add(new SshUser("admin", "admin", tempDir));
 
