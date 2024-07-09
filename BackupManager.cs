@@ -9,6 +9,7 @@ using System.Net;
 using static backup_manager.Model.Enums;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+using backup_manager.Workers;
 
 namespace backup_manager
 {
@@ -16,16 +17,18 @@ namespace backup_manager
     {
         private readonly ILogger<BackupManager> loggerManager;
         private readonly ITftpServer tftpServer;
-        private readonly IFtpServer ftpServer;
+        private readonly ISftpServer sftpServer;
         private readonly ISshWorker sshWorker;
+
+        //private readonly ISshShellWorker sshShellWorker;
         private readonly ISshShellWorker sshShellWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, IFtpServer ftpServer,
+        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
             ISshWorker sshWorker, ISshShellWorker sshShellWorker)
         {
             this.loggerManager = loggerManager;
             this.tftpServer = tftpServer;
-            this.ftpServer = ftpServer;
+            this.sftpServer = sftpServer;
             this.sshWorker = sshWorker;
             this.sshShellWorker = sshShellWorker;
         }
@@ -51,8 +54,8 @@ namespace backup_manager
 
                 // TODO: Add parallel execution
                 serverTasks = new List<Task>();
-                //serverTasks.Add(tftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000));
-                serverTasks.Add(ftpServer.RunFtpServerAsync(backupSftpFolder, 60000));
+                serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
+                serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
                 foreach (var device in devices)
                 {
@@ -69,60 +72,51 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    /*switch (device.BackupCmdType)
+                    //loggerManager.LogInformation($"Backup cmd {backupCmd}");
+
+                    switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
-                        case BackupCmdTypes.Mikrotik:
-                            //tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.HP:
-                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.QSFP28:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
                             break;
-                        case BackupCmdTypes.JL256A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.JL072A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.HP_shell:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
+                        case BackupCmdTypes.JL256A:
+                        case BackupCmdTypes.JL072A:
                         case BackupCmdTypes.J9298A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9774A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9146A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9145A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9779A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9148A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9147A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9773A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
                         case BackupCmdTypes.J9584A:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
                             break;
-                    }*/
+                        case BackupCmdTypes.Mikrotik:
+                            var downloadCmd = "/tool fetch " +
+                                "upload=yes " +
+                                $"url=\"sftp://{backupServerAddress}/{fileName}\" " +
+                                "user=admin password=admin " +
+                                $"src-path={fileName + ".backup"} " +
+                                $"src-address={device.Ip} " +
+                                "port=32";
+                            var deleteCmd = $"/file remove \"{fileName + ".backup"}\"";
+
+                            tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd));
+                            break;
+                    }
                 }
 
                 await Task.WhenAll(tasks);
+
+                //await Task.Delay(10000);
+
+                loggerManager.LogInformation($"Tasks comleted.");
             }
 
             await Task.WhenAll(serverTasks);

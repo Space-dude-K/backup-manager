@@ -8,9 +8,6 @@ namespace backup_manager.Workers
 {
     internal class SshShellWorker : ISshShellWorker
     {
-        SshClient sshClient;
-        ShellStream shell;
-
         private readonly ILogger<SshShellWorker> logger;
 
         public SshShellWorker(ILogger<SshShellWorker> logger)
@@ -28,21 +25,23 @@ namespace backup_manager.Workers
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
 
-            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            try
             {
-                client.Connect();
-
-                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
-                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                logger.LogInformation($"Run cmd -> {cmd}");
-
-                var terminalMode = new Dictionary<TerminalModes, uint>();
-                terminalMode.Add(TerminalModes.ECHO, 53);
-
-                shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
-
-                try
+                using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
                 {
+                    ShellStream shell;
+
+                    client.Connect();
+
+                    logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                        + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                    logger.LogInformation($"Run cmd -> {cmd}");
+
+                    var terminalMode = new Dictionary<TerminalModes, uint>();
+                    terminalMode.Add(TerminalModes.ECHO, 53);
+
+                    shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
+
                     AsyncCallback onWorkDone = (ar) =>
                     {
                         logger.LogInformation("External work done!");
@@ -75,7 +74,7 @@ namespace backup_manager.Workers
                     bool res;
 
                     // TODO. J9584A получает сигнал true сразу же после отправки команды isConfigModeEnabled
-                    if(backupCmdType != Enums.BackupCmdTypes.J9584A)
+                    if (backupCmdType != Enums.BackupCmdTypes.J9584A)
                     {
                         res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
                     }
@@ -88,17 +87,20 @@ namespace backup_manager.Workers
 
                     //var res = asyncExternalResult.AsyncWaitHandle.WaitOne();
                     var result = shell.EndExpect(asyncExternalResult);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError("Exception - " + ex.Message);
-                    throw;
-                }
 
-                client.Disconnect();
+                    client.Disconnect();
+                }
             }
+            catch (Exception ex)
+            {
+                logger.LogError("Exception - " + ex.Message + $" for device: {device.Ip}");
+                throw;
+            }
+
+            
         }
-        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string cmd)
+        // TODO. Wait for completion.
+        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string backupCmd, string downloadCmd, string deleteCmd)
         {
             var connectionInfo =
                 new ConnectionInfo(
@@ -109,11 +111,13 @@ namespace backup_manager.Workers
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
+                ShellStream shell;
+
                 client.Connect();
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
                     + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                logger.LogInformation($"Run cmd -> {cmd}");
+                logger.LogInformation($"Run cmd -> {backupCmd}, {downloadCmd}");
 
                 var terminalMode = new Dictionary<TerminalModes, uint>();
                 terminalMode.Add(TerminalModes.ECHO, 53);
@@ -124,26 +128,52 @@ namespace backup_manager.Workers
                 {
                     AsyncCallback onWorkDone = (ar) =>
                     {
-                        logger.LogInformation("External work done!");
+                        logger.LogInformation($"External work done!");
                     };
 
                     shell.WriteLine("\n");
 
                     var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
                     {
-                        shell.WriteLine(cmd);
+                        logger.LogInformation($"> received, executing backup sequence: {backupCmd} ...");
+                        shell.WriteLine(backupCmd);
                     }));
                     bool res;
-                    res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
+                    res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(5000);
 
-                    var asyncExternalResultAfterBackup = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
+                    var asyncExternalResultAfterBackup = shell.BeginExpect(onWorkDone, new ExpectAction("Configuration backup saved", (_) =>
                     {
-                        shell.WriteLine(cmd);
+                        logger.LogInformation($"Backup completed, executing download sequence: {downloadCmd} ...");
+                        shell.WriteLine(downloadCmd);
                     }));
                     bool resAfterBackup;
                     resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(10000);
 
+                    await Task.Delay(5000);
+
+                    var asyncExternalResultAfterDownload = shell.BeginExpect(onWorkDone, new ExpectAction("duration:", (_) =>
+                    {
+                        logger.LogInformation($"Download completed, executing delete sequence: {deleteCmd}  ...");
+                        shell.WriteLine(deleteCmd);
+                    }));
+                    bool resAfterDownload;
+                    resAfterDownload = await asyncExternalResultAfterDownload.AsyncWaitHandle.WaitOneAsync(8000);
+
+                    var asyncExternalResultAfterDelete = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
+                    {
+                        logger.LogInformation($"Delete completed.");
+                    }));
+                    bool resAfterDelete;
+                    resAfterDelete = await asyncExternalResultAfterDelete.AsyncWaitHandle.WaitOneAsync(2000);
+
                     var result = shell.EndExpect(asyncExternalResult);
+                    var resultB = shell.EndExpect(asyncExternalResultAfterBackup);
+                    var resultDown = shell.EndExpect(asyncExternalResultAfterDownload);
+                    var resultDel = shell.EndExpect(asyncExternalResultAfterDelete);
+
+                    await Task.Delay(2000);
+
+                    await shell.DisposeAsync();
                 }
                 catch (Exception ex)
                 {
@@ -165,6 +195,8 @@ namespace backup_manager.Workers
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
+                ShellStream shell;
+
                 client.Connect();
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
