@@ -8,9 +8,6 @@ namespace backup_manager.Workers
 {
     internal class SshShellWorker : ISshShellWorker
     {
-        SshClient sshClient;
-        ShellStream shell;
-
         private readonly ILogger<SshShellWorker> logger;
 
         public SshShellWorker(ILogger<SshShellWorker> logger)
@@ -30,6 +27,8 @@ namespace backup_manager.Workers
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
+                ShellStream shell;
+
                 client.Connect();
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
@@ -98,7 +97,8 @@ namespace backup_manager.Workers
                 client.Disconnect();
             }
         }
-        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string backupCmd, string downloadCmd)
+        // TODO. Wait for completion.
+        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string backupCmd, string downloadCmd, string deleteCmd)
         {
             var connectionInfo =
                 new ConnectionInfo(
@@ -109,6 +109,8 @@ namespace backup_manager.Workers
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
+                ShellStream shell;
+
                 client.Connect();
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
@@ -143,19 +145,33 @@ namespace backup_manager.Workers
                         shell.WriteLine(downloadCmd);
                     }));
                     bool resAfterBackup;
-                    resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(5000);
+                    resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(10000);
 
-                    var asyncExternalResultAfterDownload = shell.BeginExpect(onWorkDone, new ExpectAction("status:", (_) =>
+                    await Task.Delay(5000);
+
+                    var asyncExternalResultAfterDownload = shell.BeginExpect(onWorkDone, new ExpectAction("duration:", (_) =>
                     {
-                        logger.LogInformation($"Download completed, executing delete sequence:  ...");
-                        //shell.WriteLine(downloadCmd);
+                        logger.LogInformation($"Download completed, executing delete sequence: {deleteCmd}  ...");
+                        shell.WriteLine(deleteCmd);
                     }));
                     bool resAfterDownload;
-                    resAfterDownload = await asyncExternalResultAfterDownload.AsyncWaitHandle.WaitOneAsync(5000);
+                    resAfterDownload = await asyncExternalResultAfterDownload.AsyncWaitHandle.WaitOneAsync(8000);
+
+                    var asyncExternalResultAfterDelete = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
+                    {
+                        logger.LogInformation($"Delete completed.");
+                    }));
+                    bool resAfterDelete;
+                    resAfterDelete = await asyncExternalResultAfterDelete.AsyncWaitHandle.WaitOneAsync(2000);
 
                     var result = shell.EndExpect(asyncExternalResult);
                     var resultB = shell.EndExpect(asyncExternalResultAfterBackup);
-                    var resultD = shell.EndExpect(asyncExternalResultAfterDownload);
+                    var resultDown = shell.EndExpect(asyncExternalResultAfterDownload);
+                    var resultDel = shell.EndExpect(asyncExternalResultAfterDelete);
+
+                    await Task.Delay(2000);
+
+                    await shell.DisposeAsync();
                 }
                 catch (Exception ex)
                 {
@@ -177,6 +193,8 @@ namespace backup_manager.Workers
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
+                ShellStream shell;
+
                 client.Connect();
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "

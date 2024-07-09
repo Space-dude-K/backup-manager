@@ -26,12 +26,13 @@ namespace backup_manager.Servers
             {
                 server.OnReadRequest += new TftpServerEventHandler(Server_OnReadRequest);
                 server.OnWriteRequest += new TftpServerEventHandler(Server_OnWriteRequest);
+                server.OnError += Server_OnError;
 
                 server.Start();
 
                 while (true)
                 {
-                    logger.LogInformation("Waiting for connection ...");
+                    logger.LogInformation("Tftp server waiting for connection ...");
 
                     await Task.Delay(serverDlTimeRangeInMs);
                     break;
@@ -42,6 +43,13 @@ namespace backup_manager.Servers
 
             return true;
         }
+
+        private void Server_OnError(TftpTransferError error)
+        {
+            logger.LogError($"Tftp server error {error.ToString()}");
+            throw new NotImplementedException();
+        }
+
         private void InitServerDir(string dir)
         {
             serverDir = dir;

@@ -9,6 +9,7 @@ using System.Net;
 using static backup_manager.Model.Enums;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+using backup_manager.Workers;
 
 namespace backup_manager
 {
@@ -18,6 +19,8 @@ namespace backup_manager
         private readonly ITftpServer tftpServer;
         private readonly ISftpServer sftpServer;
         private readonly ISshWorker sshWorker;
+
+        //private readonly ISshShellWorker sshShellWorker;
         private readonly ISshShellWorker sshShellWorker;
 
         public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
@@ -76,6 +79,24 @@ namespace backup_manager
                         case BackupCmdTypes.Default:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
+                        case BackupCmdTypes.HP:
+                        case BackupCmdTypes.QSFP28:
+                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
+                            break;
+                        case BackupCmdTypes.HP_shell:
+                        case BackupCmdTypes.JL256A:
+                        case BackupCmdTypes.JL072A:
+                        case BackupCmdTypes.J9298A:
+                        case BackupCmdTypes.J9774A:
+                        case BackupCmdTypes.J9146A:
+                        case BackupCmdTypes.J9145A:
+                        case BackupCmdTypes.J9779A:
+                        case BackupCmdTypes.J9148A:
+                        case BackupCmdTypes.J9147A:
+                        case BackupCmdTypes.J9773A:
+                        case BackupCmdTypes.J9584A:
+                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
+                            break;
                         case BackupCmdTypes.Mikrotik:
                             var downloadCmd = "/tool fetch " +
                                 "upload=yes " +
@@ -84,54 +105,16 @@ namespace backup_manager
                                 $"src-path={fileName + ".backup"} " +
                                 $"src-address={device.Ip} " +
                                 "port=32";
-                            tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd));
-                            break;
-                        case BackupCmdTypes.HP:
-                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.QSFP28:
-                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.JL256A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.JL072A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.HP_shell:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9298A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9774A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9146A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9145A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9779A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9148A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9147A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9773A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
-                            break;
-                        case BackupCmdTypes.J9584A:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
+                            var deleteCmd = $"/file remove \"{fileName + ".backup"}\"";
+
+                            tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd));
                             break;
                     }
                 }
 
                 await Task.WhenAll(tasks);
+
+                await Task.Delay(10000);
 
                 loggerManager.LogInformation($"Tasks comleted.");
             }

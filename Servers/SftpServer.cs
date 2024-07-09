@@ -76,7 +76,7 @@ namespace backup_manager.Servers
 
             while (true)
             {
-                logger.LogInformation("Waiting for connection ...");
+                logger.LogInformation("Sftp server waiting for connection ...");
 
                 await Task.Delay(serverDlTimeRangeInMs);
                 break;
