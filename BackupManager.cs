@@ -51,7 +51,7 @@ namespace backup_manager
 
                 // TODO: Add parallel execution
                 serverTasks = new List<Task>();
-                //serverTasks.Add(tftpServer.RunSftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000));
+                serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 60000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 60000));
 
                 foreach (var device in devices)
@@ -69,13 +69,21 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    /*switch (device.BackupCmdType)
+                    loggerManager.LogInformation($"Backup cmd {backupCmd}");
+
+                    switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
                             break;
                         case BackupCmdTypes.Mikrotik:
-                            //tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd));
+                            var downloadCmd = "/tool fetch " +
+                                "upload=yes " +
+                                $"url=\"sftp://{backupServerAddress}/sftp/{fileName}\" " +
+                                "user=admin password=admin " +
+                                $"src-path={fileName} " +
+                                $"src-address={device.Ip}";
+                            tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd));
                             break;
                         case BackupCmdTypes.HP:
                             tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
@@ -119,7 +127,7 @@ namespace backup_manager
                         case BackupCmdTypes.J9584A:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
                             break;
-                    }*/
+                    }
                 }
 
                 await Task.WhenAll(tasks);

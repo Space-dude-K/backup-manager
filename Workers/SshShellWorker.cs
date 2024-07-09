@@ -98,7 +98,7 @@ namespace backup_manager.Workers
                 client.Disconnect();
             }
         }
-        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string cmd)
+        public async Task ConnectAndExecuteForMikrotikAsync(Device device, string downloadCmd, string backupCmd)
         {
             var connectionInfo =
                 new ConnectionInfo(
@@ -113,12 +113,20 @@ namespace backup_manager.Workers
 
                 logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
                     + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                logger.LogInformation($"Run cmd -> {cmd}");
+                logger.LogInformation($"Run cmd -> {downloadCmd}");
 
                 var terminalMode = new Dictionary<TerminalModes, uint>();
                 terminalMode.Add(TerminalModes.ECHO, 53);
 
                 shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
+
+                //var fileToDownload = cmd.Substring(cmd.LastIndexOf('=') + 1);
+                /*string downloadCmd = "/tool fetch " +
+                    "upload=yes " +
+                    "url=\"sftp://10.10.200.29/sftp/testBack.backup\" " +
+                    "user=admin password=admin " +
+                    $"src-path={fileToDownload} " +
+                    "src-address=10.10.253.6";*/
 
                 try
                 {
@@ -131,14 +139,17 @@ namespace backup_manager.Workers
 
                     var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
                     {
-                        shell.WriteLine(cmd);
+                        logger.LogInformation($"> received, executing backup sequence ...");
+                        shell.WriteLine(downloadCmd);
                     }));
                     bool res;
                     res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(10000);
 
-                    var asyncExternalResultAfterBackup = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
+                    var asyncExternalResultAfterBackup = shell.BeginExpect(onWorkDone, new ExpectAction("Configuration backup saved", (_) =>
                     {
-                        shell.WriteLine(cmd);
+                        logger.LogInformation($"Backup completed, executing download sequence: {backupCmd} ...");
+
+                        //shell.WriteLine(cmd);
                     }));
                     bool resAfterBackup;
                     resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(10000);
