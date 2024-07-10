@@ -36,6 +36,8 @@ namespace backup_manager.Model
             J9584A,
             [Display(Name = "/system backup save name=%file%")]
             Mikrotik,
+            [Display(Name = "execute backup config tftp %file% %addr%")]
+            Fortigate,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP_shell,
             Cisco

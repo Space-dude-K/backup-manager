@@ -95,6 +95,7 @@ namespace backup_manager
                         case BackupCmdTypes.J9147A:
                         case BackupCmdTypes.J9773A:
                         case BackupCmdTypes.J9584A:
+                        case BackupCmdTypes.Fortigate:
                             tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
                             break;
                         case BackupCmdTypes.Mikrotik:
