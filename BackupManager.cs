@@ -10,11 +10,14 @@ using static backup_manager.Model.Enums;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using backup_manager.Workers;
+using backup_manager.BackupWorkers;
 
 namespace backup_manager
 {
     class BackupManager : IBackupManager
     {
+        private readonly IServiceProvider serviceCollection;
+
         private readonly ILogger<BackupManager> loggerManager;
         private readonly ITftpServer tftpServer;
         private readonly ISftpServer sftpServer;
@@ -23,9 +26,10 @@ namespace backup_manager
         //private readonly ISshShellWorker sshShellWorker;
         private readonly ISshShellWorker sshShellWorker;
 
-        public BackupManager(ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
+        public BackupManager(IServiceProvider serviceCollection, ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
             ISshWorker sshWorker, ISshShellWorker sshShellWorker)
         {
+            this.serviceCollection = serviceCollection;
             this.loggerManager = loggerManager;
             this.tftpServer = tftpServer;
             this.sftpServer = sftpServer;
@@ -57,6 +61,9 @@ namespace backup_manager
                 serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
+                var sshLogger = serviceCollection.GetRequiredService<ILogger<SshWorker>>();
+                var sshShelllogger = serviceCollection.GetRequiredService<ILogger<SshShellWorker>>();
+
                 foreach (var device in devices)
                 {
                     var dtStr = DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
@@ -77,11 +84,11 @@ namespace backup_manager
                     switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd));
+                            tasks.Add(Task.Run(() => new SshShellWorker(sshShelllogger).ConnectAndExecuteAsync(device, backupCmd)));
                             break;
                         case BackupCmdTypes.HP:
                         case BackupCmdTypes.QSFP28:
-                            tasks.Add(Task.Run(() => sshWorker.ConnectAndDownloadAsync(device, backupCmd)));
+                            tasks.Add(Task.Run(() => new SshWorker(sshLogger).ConnectAndDownloadAsync(device, backupCmd)));
                             break;
                         case BackupCmdTypes.HP_shell:
                         case BackupCmdTypes.JL256A:
@@ -97,7 +104,7 @@ namespace backup_manager
                         case BackupCmdTypes.J9584A:
                         case BackupCmdTypes.Fortigate:
                         case BackupCmdTypes.AP_HP:
-                            tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A)));
+                            tasks.Add(Task.Run(() => new SshShellWorker(sshShelllogger).ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A)));
                             break;
                         case BackupCmdTypes.Mikrotik:
                             var downloadCmd = "/tool fetch " +
@@ -109,7 +116,8 @@ namespace backup_manager
                                 "port=32";
                             var deleteCmd = $"/file remove \"{fileName + ".backup"}\"";
 
-                            tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd)));
+                            tasks.Add(Task.Run(() => 
+                            new SshShellWorker(sshShelllogger).ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd)));
                             break;
                     }
                 }
