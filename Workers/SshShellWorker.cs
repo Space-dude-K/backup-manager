@@ -97,8 +97,64 @@ namespace backup_manager.Workers
                 logger.LogError("Exception - " + ex.Message + $" for device: {device.Ip}");
                 throw;
             }
+        }
+        public void ConnectAndExecuteForMikrotik(Device device, string backupCmd, string downloadCmd, string deleteCmd)
+        {
+            var connectionInfo =
+                new ConnectionInfo(
+                    device.Ip,
+                    22,
+                    device.Login.AdmLogin,
+                    new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
+            connectionInfo.Timeout = new TimeSpan(0, 10, 0);
 
-            
+            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            {
+                ShellStream shell;
+                client.Connect();
+
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                logger.LogInformation($"Run cmd -> {backupCmd}, {downloadCmd}");
+
+                var terminalMode = new Dictionary<TerminalModes, uint>();
+                terminalMode.Add(TerminalModes.ECHO, 53);
+
+                shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
+
+                try
+                {
+                    shell.WriteLine("\n");
+
+                    shell.Expect(new ExpectAction(">", (_) =>
+                    {
+                        logger.LogInformation($"> received, executing backup sequence: {backupCmd} ...");
+                        shell.WriteLine(backupCmd);
+                    }));
+                    shell.Expect(new ExpectAction("Configuration backup saved", (_) =>
+                    {
+                        logger.LogInformation($"Backup completed, executing download sequence: {downloadCmd} ...");
+                        shell.WriteLine(downloadCmd);
+                    }));
+
+                    Thread.Sleep(10000);
+
+                    shell.Expect(new ExpectAction("duration:", (_) =>
+                    {
+                        logger.LogInformation($"Download completed, executing delete sequence: {deleteCmd}  ...");
+                        shell.WriteLine(deleteCmd);
+                    }));
+
+                    shell.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("Exception - " + ex.Message);
+                    throw;
+                }
+
+                client.Disconnect();
+            }
         }
         // TODO. Wait for completion.
         public async Task ConnectAndExecuteForMikrotikAsync(Device device, string backupCmd, string downloadCmd, string deleteCmd)

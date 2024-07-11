@@ -46,6 +46,60 @@ namespace backup_manager.BackupWorkers
                 return execRes;
             }
         }
+        public async Task<string> ConnectAndDownloadMikrotikCfgAsync(Device device, string backupCmd, string downloadCmd, string deleteCmd)
+        {
+            var connectionInfo =
+                new ConnectionInfo(
+                    device.Ip,
+                    22,
+                    device.Login.AdmLogin,
+                    new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
+            connectionInfo.Timeout = new TimeSpan(0, 10, 0);
+
+            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            {
+                client.Connect();
+
+                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+
+                logger.LogInformation($"Run backup cmd -> {backupCmd}");
+
+                SshCommand sshBackup = client.CreateCommand(backupCmd);
+                var cmdExec = sshBackup.BeginExecute();
+                while(!cmdExec.IsCompleted)
+                {
+                    await Task.Delay(2000);
+                }
+                var cmdExecResult = sshBackup.EndExecute(cmdExec);
+
+                logger.LogInformation($"Run download cmd -> {downloadCmd}");
+
+                SshCommand sshDownload = client.CreateCommand(downloadCmd);
+                var cmdExecDownload = sshDownload.BeginExecute();
+
+                while (!cmdExecDownload.IsCompleted)
+                {
+                    await Task.Delay(1000);
+                }
+                var cmdExecResultDownload = sshDownload.EndExecute(cmdExecDownload);
+
+                logger.LogInformation($"Run delete cmd -> {downloadCmd}");
+
+                SshCommand sshDelete = client.CreateCommand(deleteCmd);
+                var cmdExecDelete = sshDelete.BeginExecute();
+
+                while (!cmdExecDelete.IsCompleted)
+                {
+                    await Task.Delay(1000);
+                }
+                var cmdExecResultDelete = sshDelete.EndExecute(cmdExecDelete);
+
+                client.Disconnect();
+
+                return cmdExecResultDelete;
+            }
+        }
         public async Task<string> ConnectAndDownloadAsync(Device device, string backupCmd, 
             int timeOutInMs = 20000)
         {

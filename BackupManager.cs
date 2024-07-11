@@ -117,7 +117,7 @@ namespace backup_manager
                             var deleteCmd = $"/file remove \"{fileName + ".backup"}\"";
 
                             tasks.Add(Task.Run(() => 
-                            new SshShellWorker(sshShelllogger).ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd)));
+                            new SshWorker(sshLogger).ConnectAndDownloadMikrotikCfgAsync(device, backupCmd, downloadCmd, deleteCmd)));
                             break;
                     }
                 }
