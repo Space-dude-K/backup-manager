@@ -31,6 +31,7 @@ namespace backup_manager.Workers
                 {
                     ShellStream shell;
 
+                    client.ConnectionInfo.Timeout = new TimeSpan(0, 1, 0);
                     client.Connect();
 
                     logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
@@ -62,7 +63,7 @@ namespace backup_manager.Workers
                                 shell.WriteLine(cmd);
                             }));
 
-                            var res = await asyncExternalResultForConfig.AsyncWaitHandle.WaitOneAsync(2000);
+                            var res = await asyncExternalResultForConfig.AsyncWaitHandle.WaitOneAsync(8000);
                             var result = shell.EndExpect(asyncExternalResultForConfig);
                         }
                         else
@@ -108,6 +109,7 @@ namespace backup_manager.Workers
                     22,
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
+            connectionInfo.Timeout = new TimeSpan(0, 10, 0);
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
@@ -139,7 +141,7 @@ namespace backup_manager.Workers
                         shell.WriteLine(backupCmd);
                     }));
                     bool res;
-                    res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(5000);
+                    res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(50000);
 
                     var asyncExternalResultAfterBackup = shell.BeginExpect(onWorkDone, new ExpectAction("Configuration backup saved", (_) =>
                     {
@@ -147,9 +149,9 @@ namespace backup_manager.Workers
                         shell.WriteLine(downloadCmd);
                     }));
                     bool resAfterBackup;
-                    resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(10000);
+                    resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(100000);
 
-                    await Task.Delay(5000);
+                    await Task.Delay(10000);
 
                     var asyncExternalResultAfterDownload = shell.BeginExpect(onWorkDone, new ExpectAction("duration:", (_) =>
                     {
@@ -157,21 +159,21 @@ namespace backup_manager.Workers
                         shell.WriteLine(deleteCmd);
                     }));
                     bool resAfterDownload;
-                    resAfterDownload = await asyncExternalResultAfterDownload.AsyncWaitHandle.WaitOneAsync(8000);
+                    resAfterDownload = await asyncExternalResultAfterDownload.AsyncWaitHandle.WaitOneAsync(80000);
 
                     var asyncExternalResultAfterDelete = shell.BeginExpect(onWorkDone, new ExpectAction(">", (_) =>
                     {
                         logger.LogInformation($"Delete completed.");
                     }));
                     bool resAfterDelete;
-                    resAfterDelete = await asyncExternalResultAfterDelete.AsyncWaitHandle.WaitOneAsync(2000);
+                    resAfterDelete = await asyncExternalResultAfterDelete.AsyncWaitHandle.WaitOneAsync(20000);
 
                     var result = shell.EndExpect(asyncExternalResult);
                     var resultB = shell.EndExpect(asyncExternalResultAfterBackup);
                     var resultDown = shell.EndExpect(asyncExternalResultAfterDownload);
                     var resultDel = shell.EndExpect(asyncExternalResultAfterDelete);
 
-                    await Task.Delay(2000);
+                    await Task.Delay(5000);
 
                     await shell.DisposeAsync();
                 }
