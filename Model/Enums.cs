@@ -38,6 +38,8 @@ namespace backup_manager.Model
             Mikrotik,
             [Display(Name = "execute backup config tftp %file% %addr%")]
             Fortigate,
+            [Display(Name = "copy config tftp %addr% %file%")]
+            AP_HP,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP_shell,
             Cisco

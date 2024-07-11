@@ -81,7 +81,7 @@ namespace backup_manager
                             break;
                         case BackupCmdTypes.HP:
                         case BackupCmdTypes.QSFP28:
-                            tasks.Add(sshWorker.ConnectAndDownloadAsync(device, backupCmd));
+                            tasks.Add(Task.Run(() => sshWorker.ConnectAndDownloadAsync(device, backupCmd)));
                             break;
                         case BackupCmdTypes.HP_shell:
                         case BackupCmdTypes.JL256A:
@@ -96,7 +96,8 @@ namespace backup_manager
                         case BackupCmdTypes.J9773A:
                         case BackupCmdTypes.J9584A:
                         case BackupCmdTypes.Fortigate:
-                            tasks.Add(sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A));
+                        case BackupCmdTypes.AP_HP:
+                            tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A)));
                             break;
                         case BackupCmdTypes.Mikrotik:
                             var downloadCmd = "/tool fetch " +
@@ -108,7 +109,7 @@ namespace backup_manager
                                 "port=32";
                             var deleteCmd = $"/file remove \"{fileName + ".backup"}\"";
 
-                            tasks.Add(sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd));
+                            tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd)));
                             break;
                     }
                 }
