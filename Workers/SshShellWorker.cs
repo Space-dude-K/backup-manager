@@ -151,7 +151,7 @@ namespace backup_manager.Workers
                     bool resAfterBackup;
                     resAfterBackup = await asyncExternalResultAfterBackup.AsyncWaitHandle.WaitOneAsync(100000);
 
-                    await Task.Delay(10000);
+                    await Task.Delay(200);
 
                     var asyncExternalResultAfterDownload = shell.BeginExpect(onWorkDone, new ExpectAction("duration:", (_) =>
                     {
@@ -173,7 +173,7 @@ namespace backup_manager.Workers
                     var resultDown = shell.EndExpect(asyncExternalResultAfterDownload);
                     var resultDel = shell.EndExpect(asyncExternalResultAfterDelete);
 
-                    await Task.Delay(5000);
+                    //await Task.Delay(15000);
 
                     await shell.DisposeAsync();
                 }
