@@ -124,8 +124,6 @@ namespace backup_manager
 
                 await Task.WhenAll(tasks);
 
-                //await Task.Delay(10000);
-
                 loggerManager.LogInformation($"Tasks comleted.");
             }
 

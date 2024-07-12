@@ -55,6 +55,8 @@ namespace backup_manager.BackupWorkers
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
             connectionInfo.Timeout = new TimeSpan(0, 10, 0);
+            connectionInfo.ChannelCloseTimeout = new TimeSpan(0, 0, 20);
+            connectionInfo.MaxSessions = 200;
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
@@ -73,6 +75,9 @@ namespace backup_manager.BackupWorkers
                 }
                 var cmdExecResult = sshBackup.EndExecute(cmdExec);
 
+                // TODO. Find a way to track completion.
+                await Task.Delay(10000);
+
                 logger.LogInformation($"Run download cmd -> {downloadCmd}");
 
                 SshCommand sshDownload = client.CreateCommand(downloadCmd);
@@ -83,6 +88,8 @@ namespace backup_manager.BackupWorkers
                     await Task.Delay(1000);
                 }
                 var cmdExecResultDownload = sshDownload.EndExecute(cmdExecDownload);
+
+                await Task.Delay(10000);
 
                 logger.LogInformation($"Run delete cmd -> {downloadCmd}");
 
