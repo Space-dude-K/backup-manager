@@ -24,7 +24,6 @@ namespace backup_manager.Servers
             SshKey rsaKey = SshKey.Generate(SshKeyAlgorithm.RSA, 1024);
             SshKey dssKey = SshKey.Generate(SshKeyAlgorithm.DSS, 1024);
 
-
             // add keys, bindings and users
             Nuane.Net.SftpServer server = new();
 
@@ -83,6 +82,7 @@ namespace backup_manager.Servers
             }
 
             logger.LogInformation("Sftp server completed dl requests.");
+
             server.Stop();
 
             return true;

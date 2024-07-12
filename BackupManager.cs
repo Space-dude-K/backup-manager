@@ -56,13 +56,9 @@ namespace backup_manager
             {
                 loggerManager.LogInformation($"Init backup process ...");
 
-                // TODO: Add parallel execution
                 serverTasks = new List<Task>();
                 serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
-
-                var sshLogger = serviceCollection.GetRequiredService<ILogger<SshWorker>>();
-                var sshShelllogger = serviceCollection.GetRequiredService<ILogger<SshShellWorker>>();
 
                 foreach (var device in devices)
                 {
@@ -79,16 +75,14 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    //loggerManager.LogInformation($"Backup cmd {backupCmd}");
-
                     switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
-                            tasks.Add(Task.Run(() => new SshShellWorker(sshShelllogger).ConnectAndExecuteAsync(device, backupCmd)));
+                            tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteAsync(device, backupCmd)));
                             break;
                         case BackupCmdTypes.HP:
                         case BackupCmdTypes.QSFP28:
-                            tasks.Add(Task.Run(() => new SshWorker(sshLogger).ConnectAndDownloadAsync(device, backupCmd)));
+                            tasks.Add(Task.Run(() => sshWorker.ConnectAndDownloadAsync(device, backupCmd)));
                             break;
                         case BackupCmdTypes.HP_shell:
                         case BackupCmdTypes.JL256A:
@@ -104,7 +98,8 @@ namespace backup_manager
                         case BackupCmdTypes.J9584A:
                         case BackupCmdTypes.Fortigate:
                         case BackupCmdTypes.AP_HP:
-                            tasks.Add(Task.Run(() => new SshShellWorker(sshShelllogger).ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A)));
+                            tasks.Add(Task.Run(() => sshShellWorker
+                            .ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A)));
                             break;
                         case BackupCmdTypes.Mikrotik:
                             var downloadCmd = "/tool fetch " +
@@ -116,15 +111,13 @@ namespace backup_manager
                                 "port=32";
                             var deleteCmd = $"/file remove \"{fileName + ".backup"}\"";
 
-                            tasks.Add(Task.Run(() => 
-                            new SshShellWorker(sshShelllogger).ConnectAndExecuteForMikrotikAsync(device, backupCmd, downloadCmd, deleteCmd)));
+                            tasks.Add(Task.Run(() =>
+                            sshWorker.ConnectAndDownloadMikrotikCfgAsync(device, backupCmd, downloadCmd, deleteCmd)));
                             break;
                     }
                 }
 
                 await Task.WhenAll(tasks);
-
-                //await Task.Delay(10000);
 
                 loggerManager.LogInformation($"Tasks comleted.");
             }
