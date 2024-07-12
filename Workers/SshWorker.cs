@@ -76,7 +76,7 @@ namespace backup_manager.BackupWorkers
                 var cmdExecResult = sshBackup.EndExecute(cmdExec);
 
                 // TODO. Find a way to track completion.
-                await Task.Delay(10000);
+                await Task.Delay(20000);
 
                 logger.LogInformation($"Run download cmd -> {downloadCmd}");
 
@@ -89,7 +89,7 @@ namespace backup_manager.BackupWorkers
                 }
                 var cmdExecResultDownload = sshDownload.EndExecute(cmdExecDownload);
 
-                await Task.Delay(10000);
+                await Task.Delay(15000);
 
                 logger.LogInformation($"Run delete cmd -> {downloadCmd}");
 
@@ -110,35 +110,44 @@ namespace backup_manager.BackupWorkers
         public async Task<string> ConnectAndDownloadAsync(Device device, string backupCmd, 
             int timeOutInMs = 20000)
         {
-            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            string? execEndRes = string.Empty;
+
+            try
             {
-                CancellationTokenSource cts = new(timeOutInMs);
-
-                await client.ConnectAsync(cts.Token);
-
-                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
-                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                logger.LogInformation($"Run cmd -> {backupCmd}");
-
-                var cmd = client.RunCommand(backupCmd);
-                var execRes = cmd.BeginExecute();
-                bool signaled = await execRes.AsyncWaitHandle.WaitOneAsync(10000);
-
-                if (signaled)
+                using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
                 {
-                    logger.LogInformation("Signal of completion received");
+                    CancellationTokenSource cts = new(timeOutInMs);
+
+                    await client.ConnectAsync(cts.Token);
+
+                    logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                        + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+                    logger.LogInformation($"Run cmd -> {backupCmd}");
+
+                    var cmd = client.RunCommand(backupCmd);
+                    var execRes = cmd.BeginExecute();
+                    bool signaled = await execRes.AsyncWaitHandle.WaitOneAsync(10000);
+
+                    if (signaled)
+                    {
+                        logger.LogInformation("Signal of completion received");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Waiting signal timed out");
+                    }
+
+                    execEndRes = cmd.EndExecute(execRes);
+
+                    client.Disconnect();
                 }
-                else
-                {
-                    logger.LogInformation("Waiting signal timed out");
-                }
-
-                var execEndRes = cmd.EndExecute(execRes);
-
-                client.Disconnect();
-
-                return execEndRes;
             }
+            catch (Exception ex)
+            {
+                logger.LogError($"Exception {ex.Message}");
+            }
+
+            return execEndRes;
         }
     }
 }
