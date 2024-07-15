@@ -40,6 +40,8 @@ namespace backup_manager.Model
             Fortigate,
             [Display(Name = "copy config tftp %addr% %file%")]
             AP_HP,
+            [Display(Name = "tftp -p -l /tmp/system.cfg -r %file% %addr%")]
+            NanoStation,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
             HP_shell,
             Cisco
