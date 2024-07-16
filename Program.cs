@@ -117,6 +117,7 @@ namespace backup_manager
                   .AddTransient<IBackupManager, BackupManager>()
                   .AddTransient<ISshWorker, SshWorker>()
                   .AddTransient<ISshShellWorker, SshShellWorker>()
+                  .AddTransient<IZipWorker, ZipWorker>()
                   .AddLogging(loggingBuilder =>
                   {
                       // configure Logging with NLog

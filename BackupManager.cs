@@ -25,9 +25,10 @@ namespace backup_manager
 
         //private readonly ISshShellWorker sshShellWorker;
         private readonly ISshShellWorker sshShellWorker;
+        private readonly IZipWorker zipWorker;
 
         public BackupManager(IServiceProvider serviceCollection, ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
-            ISshWorker sshWorker, ISshShellWorker sshShellWorker)
+            ISshWorker sshWorker, ISshShellWorker sshShellWorker, IZipWorker zipWorker)
         {
             this.serviceCollection = serviceCollection;
             this.loggerManager = loggerManager;
@@ -35,6 +36,7 @@ namespace backup_manager
             this.sftpServer = sftpServer;
             this.sshWorker = sshWorker;
             this.sshShellWorker = sshShellWorker;
+            this.zipWorker = zipWorker;
         }
         public async Task Init(List<Device> devices, List<string> backupLocations, string backupSftpFolder)
         {
@@ -67,8 +69,6 @@ namespace backup_manager
                     var fileName = (deviceNameAndSn + "_" + dtStr + ".cfg")
                         .GetCleanFileName();
                     var backupServerAddress = Utils.GetLocalIPAddress();
-                    var l = Path.Combine(backupSftpFolder, Utils.GetFolderNamePartForBackupParent(device.BackupCmdType),
-                        deviceNameAndSn);
                     var backupCmd =
                         device.BackupCmdType.GetDisplayAttributeFrom(typeof(BackupCmdTypes))
                         .Replace("%configName%", device.ConfigName)
@@ -119,8 +119,17 @@ namespace backup_manager
                 }
 
                 await Task.WhenAll(tasks);
+                await Task.Delay(10000);
 
-                loggerManager.LogInformation($"Tasks comleted.");
+                loggerManager.LogInformation($"Backup tasks comleted.");
+
+                // Zip
+                foreach(var file in Directory.GetFiles(backupSftpFolder))
+                {
+                    zipWorker.SafelyCreateZipFromDirectory(file);
+                }
+
+                loggerManager.LogInformation($"Zip tasks comleted.");
             }
 
             await Task.WhenAll(serverTasks);
@@ -128,8 +137,6 @@ namespace backup_manager
         
         string ConnectAndDownload(string sshClientAddress, string backupCmd)
         {
-            
-
             using (var client = new SshClient(sshClientAddress, "admin", "VMGPa$$w0rd"))
             {
                 client.Connect();
