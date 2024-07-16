@@ -16,3 +16,7 @@
   *   Mikrotik (generic)
   *   Fortigate (generic)
   *   NanoStation (generic)
+
+InProgress:
+* создание SQL-бэкапов, тестирование
+* поддержка других сетевых девайсов
