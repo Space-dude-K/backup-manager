@@ -1,18 +1,18 @@
 Резервное копирование сетевого оборудования. Поддерживается архивация. Поддерживаются следующие вендоры и модели:
-:black_circle: HP (generic)
-:black_circle: HP Access Points (generic)
-:black_circle: HP QSFP28
-:black_circle: HP JL256A
-:black_circle: HP JL072A
-:black_circle: HP J9298A
-:black_circle: HP J9146A
-:black_circle: HP J9145A
-:black_circle: HP J9774A
-:black_circle: HP J9779A
-:black_circle: HP J9148A
-:black_circle: HP J9147A
-:black_circle: HP J9773A
-:black_circle: HP J9584A
-:black_circle: Mikrotik (generic)
-:black_circle: Fortigate (generic)
-:black_circle: NanoStation (generic)
+⚫  HP (generic)
+⚫  HP Access Points (generic)
+⚫  HP QSFP28
+⚫  HP JL256A
+⚫  HP JL072A
+⚫  HP J9298A
+⚫  HP J9146A
+⚫  HP J9145A
+⚫  HP J9774A
+⚫  HP J9779A
+⚫  HP J9148A
+⚫  HP J9147A
+⚫  HP J9773A
+⚫  HP J9584A
+⚫  Mikrotik (generic)
+⚫  Fortigate (generic)
+⚫  NanoStation (generic)
