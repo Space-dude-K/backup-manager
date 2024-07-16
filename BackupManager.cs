@@ -98,6 +98,7 @@ namespace backup_manager
                         case BackupCmdTypes.J9584A:
                         case BackupCmdTypes.Fortigate:
                         case BackupCmdTypes.AP_HP:
+                        case BackupCmdTypes.NanoStation:
                             tasks.Add(Task.Run(() => sshShellWorker
                             .ConnectAndExecuteAsync(device, backupCmd, BackupCmdTypes.J9584A)));
                             break;
