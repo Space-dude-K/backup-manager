@@ -228,15 +228,15 @@ namespace backup_manager.Workers
                     var resultB = shell.EndExpect(asyncExternalResultAfterBackup);
                     var resultDown = shell.EndExpect(asyncExternalResultAfterDownload);
                     var resultDel = shell.EndExpect(asyncExternalResultAfterDelete);
-
-                    //await Task.Delay(15000);
-
-                    await shell.DisposeAsync();
                 }
                 catch (Exception ex)
                 {
                     logger.LogError("Exception - " + ex.Message);
-                    throw;
+                }
+                finally
+                {
+                    shell.WriteLine(deleteCmd);
+                    await shell.DisposeAsync();
                 }
 
                 client.Disconnect();
