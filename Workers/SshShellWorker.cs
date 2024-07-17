@@ -242,6 +242,151 @@ namespace backup_manager.Workers
                 client.Disconnect();
             }
         }
+        // TODO. Refactoring.
+        public async Task<string> ConnectAndDownloadCiscoCfgAsync(Device device, string backupCmd)
+        {
+            List<string> cmdResults = new();
+
+            var connectionInfo =
+                new ConnectionInfo(
+                    device.Ip,
+                    22,
+                    device.Login.AdmLogin,
+                    new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
+            connectionInfo.Timeout = new TimeSpan(0, 0, 30);
+            connectionInfo.ChannelCloseTimeout = new TimeSpan(0, 0, 50);
+            connectionInfo.MaxSessions = 200;
+
+            try
+            {
+                using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+                {
+                    ShellStream shell;
+
+                    client.Connect();
+
+                    logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                        + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+
+                    var cmds = backupCmd.Split(',')
+                        .Select(s => s.TrimStart()).ToList();
+
+                    var terminalMode = new Dictionary<TerminalModes, uint>();
+                    terminalMode.Add(TerminalModes.ECHO, 53);
+
+                    shell = client.CreateShellStream("", 0, 0, 0, 0, 5192);
+
+                    try
+                    {
+                        logger.LogInformation($"Run cmds -> {cmds.Count}");
+
+                        string cmdUploadMode = cmds[0];
+                        string cmdUploadDatatype = cmds[1];
+                        string cmdUploadFilename = cmds[2];
+                        string cmdUploadPath = cmds[3];
+                        string cmdUploadServerip = cmds[4];
+                        string cmdUploadStart = cmds[5];
+
+                        shell.Write("\n");
+
+                        shell.Write(cmdUploadMode);
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        shell.Write(cmdUploadDatatype);
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        shell.Write(cmdUploadFilename);
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        shell.Write(cmdUploadPath);
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        shell.Write(cmdUploadServerip);
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        shell.Write(cmdUploadStart);
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        shell.Write("y");
+                        await Task.Delay(1000);
+                        shell.Write("\n");
+
+                        /*foreach (var cmd in cmds)
+                        {
+                            string expectedSymbol = !cmd.Contains("start") ? ">" : "Are you sure you want to start? (y/N)";
+
+                            cmdResults.Add(await CmdRunner(shell, cmd, expectedSymbol));
+                            await Task.Delay(1000);
+                        }*/
+
+                        logger.LogInformation($"Output: {shell.Read()}");
+
+                        await Task.Delay(5000);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError("Exception - " + ex.Message);
+                    }
+                    finally
+                    {
+                        await shell.DisposeAsync();
+                    }
+
+                    client.Disconnect();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"{ex.Message}");
+                throw;
+            }
+            finally
+            {
+
+            }
+
+            return string.Concat(cmdResults);
+        }
+        private async Task<string> CmdRunner(ShellStream shell, string cmd, string expectedSymbol)
+        {
+            logger.LogInformation($"Run -> {cmd}");
+
+            AsyncCallback onWorkDone = (ar) =>
+            {
+                logger.LogInformation($"External work done!");
+            };
+
+            shell.WriteLine(cmd);
+            await Task.Delay(1000);
+            shell.WriteLine("\n");
+            await Task.Delay(200);
+
+            var asyncExternalResult = shell.BeginExpect(onWorkDone, new ExpectAction(expectedSymbol, async (_) =>
+            {
+                logger.LogInformation($"{expectedSymbol} received.");
+
+                if(expectedSymbol == "Are you sure you want to start? (y/N)")
+                {
+                    await Task.Delay(10000);
+                    shell.WriteLine("y");
+                    await Task.Delay(2000);
+                    shell.WriteLine("\n");
+                }
+            }));
+
+            bool res;
+            res = await asyncExternalResult.AsyncWaitHandle.WaitOneAsync(30000);
+
+            var result = shell.EndExpect(asyncExternalResult);
+
+            return result;
+        }
         public void ConnectAndExecute(Device device, string cmd)
         {
             var connectionInfo =

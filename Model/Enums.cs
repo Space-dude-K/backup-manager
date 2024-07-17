@@ -42,9 +42,10 @@ namespace backup_manager.Model
             AP_HP,
             [Display(Name = "tftp -p -l /tmp/system.cfg -r %file% %addr%")]
             NanoStation,
+            [Display(Name = "transfer upload mode tftp, transfer upload datatype config, transfer upload filename %file%, transfer upload path ., transfer upload serverip %addr%, transfer upload start")]
+            Cisco_vWLC,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
-            HP_shell,
-            Cisco
+            HP_shell
         }
     }
 }

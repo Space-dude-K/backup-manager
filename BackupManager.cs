@@ -115,6 +115,10 @@ namespace backup_manager
                             tasks.Add(Task.Run(() =>
                             sshWorker.ConnectAndDownloadMikrotikCfgAsync(device, backupCmd, downloadCmd, deleteCmd)));
                             break;
+                        case BackupCmdTypes.Cisco_vWLC:
+                            tasks.Add(Task.Run(() => sshShellWorker
+                            .ConnectAndDownloadCiscoCfgAsync(device, backupCmd)));
+                            break;
                     }
                 }
 

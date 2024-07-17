@@ -2,10 +2,6 @@
 using backup_manager.Model;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
-using System.IO;
-using System.Threading;
-using System.Xml.Linq;
-using static backup_manager.Model.Enums;
 
 namespace backup_manager.BackupWorkers
 {
@@ -58,54 +54,66 @@ namespace backup_manager.BackupWorkers
             connectionInfo.ChannelCloseTimeout = new TimeSpan(0, 0, 20);
             connectionInfo.MaxSessions = 200;
 
-            using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
+            try
             {
-                client.Connect();
-
-                logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
-                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-
-                logger.LogInformation($"Run backup cmd -> {backupCmd}");
-
-                SshCommand sshBackup = client.CreateCommand(backupCmd);
-                var cmdExec = sshBackup.BeginExecute();
-                while(!cmdExec.IsCompleted)
+                using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
                 {
-                    await Task.Delay(2000);
+                    client.Connect();
+
+                    logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
+                        + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
+
+                    logger.LogInformation($"Run backup cmd -> {backupCmd}");
+
+                    SshCommand sshBackup = client.CreateCommand(backupCmd);
+                    var cmdExec = sshBackup.BeginExecute();
+                    while (!cmdExec.IsCompleted)
+                    {
+                        await Task.Delay(2000);
+                    }
+                    var cmdExecResult = sshBackup.EndExecute(cmdExec);
+
+                    // TODO. Find a way to track completion.
+                    await Task.Delay(20000);
+
+                    logger.LogInformation($"Run download cmd -> {downloadCmd}");
+
+                    SshCommand sshDownload = client.CreateCommand(downloadCmd);
+                    var cmdExecDownload = sshDownload.BeginExecute();
+
+                    while (!cmdExecDownload.IsCompleted)
+                    {
+                        await Task.Delay(1000);
+                    }
+                    var cmdExecResultDownload = sshDownload.EndExecute(cmdExecDownload);
+
+                    await Task.Delay(15000);
+
+                    logger.LogInformation($"Run delete cmd -> {downloadCmd}");
+
+                    SshCommand sshDelete = client.CreateCommand(deleteCmd);
+                    var cmdExecDelete = sshDelete.BeginExecute();
+
+                    while (!cmdExecDelete.IsCompleted)
+                    {
+                        await Task.Delay(1000);
+                    }
+                    var cmdExecResultDelete = sshDelete.EndExecute(cmdExecDelete);
+
+                    client.Disconnect();
+
+                    return cmdExecResultDelete;
                 }
-                var cmdExecResult = sshBackup.EndExecute(cmdExec);
-
-                // TODO. Find a way to track completion.
-                await Task.Delay(20000);
-
-                logger.LogInformation($"Run download cmd -> {downloadCmd}");
-
-                SshCommand sshDownload = client.CreateCommand(downloadCmd);
-                var cmdExecDownload = sshDownload.BeginExecute();
-
-                while (!cmdExecDownload.IsCompleted)
-                {
-                    await Task.Delay(1000);
-                }
-                var cmdExecResultDownload = sshDownload.EndExecute(cmdExecDownload);
-
-                await Task.Delay(15000);
-
-                logger.LogInformation($"Run delete cmd -> {downloadCmd}");
-
-                SshCommand sshDelete = client.CreateCommand(deleteCmd);
-                var cmdExecDelete = sshDelete.BeginExecute();
-
-                while (!cmdExecDelete.IsCompleted)
-                {
-                    await Task.Delay(1000);
-                }
-                var cmdExecResultDelete = sshDelete.EndExecute(cmdExecDelete);
-
-                client.Disconnect();
-
-                return cmdExecResultDelete;
             }
+            catch (Exception ex)
+            {
+                logger.LogError($"{ex.Message}");
+                throw;
+            }
+            finally
+            {
+
+            }   
         }
         public async Task<string> ConnectAndDownloadAsync(Device device, string backupCmd, 
             int timeOutInMs = 20000)
