@@ -331,19 +331,6 @@ namespace backup_manager
 
             throw new Exception("No network adapters with an IPv4 address in the system!");
         }
-        internal static string GetFolderNamePartForBackupParent(Enums.BackupCmdTypes type)
-        {
-            switch (type)
-            {
-                case Enums.BackupCmdTypes.Cisco:
-                case Enums.BackupCmdTypes.HP:
-                case Enums.BackupCmdTypes.HP_shell:
-                    return "NetworkHardware";
-                case Enums.BackupCmdTypes.Default:
-                default:
-                    return "";
-            }
-        }
         internal static string RemoveInvalidChars(string filename)
         {
             return Regex.Replace(string.Concat(filename.Split(Path.GetInvalidFileNameChars())), @"\s+", "");
