@@ -16,6 +16,7 @@
   *   Mikrotik (generic)
   *   Fortigate (generic)
   *   NanoStation (generic)
+  *   Cisco vWLC-AIR-CTVM-K9
 
 InProgress:
 * создание SQL-бэкапов, тестирование
