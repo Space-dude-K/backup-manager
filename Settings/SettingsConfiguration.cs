@@ -1,5 +1,6 @@
 ﻿using backup_manager.Settings.BackupPaths;
 using backup_manager.Settings.CheckObject;
+using backup_manager.Settings.DbObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using System.Configuration;
@@ -12,6 +13,11 @@ namespace backup_manager.Settings
         public CheckObjectElementCollection CheckObjects
         {
             get { return (CheckObjectElementCollection)base["objectsToCheck"]; }
+        }
+        [ConfigurationProperty("dbs", IsDefaultCollection = false)]
+        public DbObjectElementCollection Dbs
+        {
+            get { return (DbObjectElementCollection)base["dbs"]; }
         }
         [ConfigurationProperty("backupPaths", IsDefaultCollection = false)]
         public BackupPathElementCollection BackupPaths

@@ -38,7 +38,7 @@ namespace backup_manager
             this.sshShellWorker = sshShellWorker;
             this.zipWorker = zipWorker;
         }
-        public async Task Init(List<Device> devices, List<string> backupLocations, string backupSftpFolder)
+        public async Task Init(List<Device> devices, List<Db> dbs, List<string> backupLocations, string backupSftpFolder)
         {
             List<Task> serverTasks = null;
 
@@ -62,7 +62,7 @@ namespace backup_manager
                 serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
-                foreach (var device in devices)
+                /*foreach (var device in devices)
                 {
                     var dtStr = DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
                     var deviceNameAndSn = Utils.RemoveInvalidChars(device.Name + "_" + device.SerialNumber);
@@ -120,6 +120,11 @@ namespace backup_manager
                             .ConnectAndDownloadCiscoCfgAsync(device, backupCmd)));
                             break;
                     }
+                }*/
+
+                foreach (Db db in dbs)
+                {
+                    loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod}");
                 }
 
                 await Task.WhenAll(tasks);
