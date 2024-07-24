@@ -1,5 +1,4 @@
-﻿using backup_manager.Settings.CheckObject;
-using System.Configuration;
+﻿using System.Configuration;
 
 namespace backup_manager.Settings.DbObject
 {
@@ -16,6 +15,12 @@ namespace backup_manager.Settings.DbObject
                 throw new ArgumentNullException("DbNameDataArgumentNullException");
 
             return ((DbObjectElement)element).DbName;
+        }
+        [ConfigurationProperty("dbTempFolder", IsDefaultCollection = false)]
+        public string DbTempFolder
+        {
+            get { return (string)this["dbTempFolder"]; }
+            set { this["dbTempFolder"] = value; }
         }
     }
 }

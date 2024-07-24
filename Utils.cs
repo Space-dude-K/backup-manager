@@ -318,6 +318,10 @@ namespace backup_manager
     }
     internal static class Utils
     {
+        internal static string GetDateStrForFileName()
+        {
+            return DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
+        }
         internal static string GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());

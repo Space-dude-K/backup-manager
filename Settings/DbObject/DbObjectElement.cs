@@ -11,6 +11,12 @@ namespace backup_manager.Settings.DbObject
             get { return (string)this["dbName"]; }
             set { this["dbName"] = value; }
         }
+        [ConfigurationProperty("serverAddress", IsRequired = true)]
+        public string ServerAddress
+        {
+            get { return (string)this["serverAddress"]; }
+            set { this["serverAddress"] = value; }
+        }
         [ConfigurationProperty("backupPath", IsRequired = false)]
         public string BackupPath
         {
@@ -40,6 +46,12 @@ namespace backup_manager.Settings.DbObject
         {
             get { return (string)this["backupDescription"]; }
             set { this["backupDescription"] = value; }
+        }
+        [ConfigurationProperty("loginId", IsRequired = true)]
+        public string LoginId
+        {
+            get { return (string)this["loginId"]; }
+            set { this["loginId"] = value; }
         }
         private string CheckObject(string rawStr)
         {

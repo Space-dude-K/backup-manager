@@ -11,6 +11,7 @@ using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using backup_manager.Workers;
 using backup_manager.BackupWorkers;
+using System.Data.SqlClient;
 
 namespace backup_manager
 {
@@ -26,9 +27,10 @@ namespace backup_manager
         //private readonly ISshShellWorker sshShellWorker;
         private readonly ISshShellWorker sshShellWorker;
         private readonly IZipWorker zipWorker;
+        private readonly ISqlWorker sqlWorker;
 
         public BackupManager(IServiceProvider serviceCollection, ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
-            ISshWorker sshWorker, ISshShellWorker sshShellWorker, IZipWorker zipWorker)
+            ISshWorker sshWorker, ISshShellWorker sshShellWorker, IZipWorker zipWorker, ISqlWorker sqlWorker)
         {
             this.serviceCollection = serviceCollection;
             this.loggerManager = loggerManager;
@@ -37,8 +39,10 @@ namespace backup_manager
             this.sshWorker = sshWorker;
             this.sshShellWorker = sshShellWorker;
             this.zipWorker = zipWorker;
+            this.sqlWorker = sqlWorker;
         }
-        public async Task Init(List<Device> devices, List<Db> dbs, List<string> backupLocations, string backupSftpFolder)
+        public async Task Init(List<Device> devices, List<Db> dbs, 
+            List<string> backupLocations, string backupSftpFolder, string dbTempPath)
         {
             List<Task> serverTasks = null;
 
@@ -122,9 +126,31 @@ namespace backup_manager
                     }
                 }*/
 
-                foreach (Db db in dbs)
+                if (dbs.Count > 0)
                 {
-                    loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod}");
+                    foreach (Db db in dbs)
+                    {
+                        var dtNamePart = db.BackupName;
+                        var dtStr = Utils.GetDateStrForFileName();
+                        var fileName = (dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
+                        var fileFullPath = Path.Combine(dbTempPath, fileName);
+
+                        var connStr = new SqlConnectionStringBuilder()
+                        {
+                            DataSource = db.Server,
+                            InitialCatalog = db.DbName,
+                            UserID = db.Login.AdmLogin,
+                            Password = db.Login.AdminPass
+                        }.ConnectionString;
+                        //var connStr = $"connetionString = \"Data Source={db.Server};Initial Catalog={db.DbName};User ID={db.Login.AdmLogin};Password={db.Login.AdminPass}";
+
+                        using (SqlConnection conn = new SqlConnection(connStr))
+                        {
+                            sqlWorker.BackupDatabase(conn, db.DbName, fileFullPath, db.Description, fileName);
+                        }
+
+                        loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
+                    }
                 }
 
                 await Task.WhenAll(tasks);
