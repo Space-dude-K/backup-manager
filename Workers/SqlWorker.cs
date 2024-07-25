@@ -98,7 +98,54 @@ namespace backup_manager.Workers
 
             return isSucceeded && isBackupVerified;
         }
+        public async Task<bool> RestoreDatabaseAsync(SqlConnection con, string backupPath, string databaseName)
+        {
+            bool isSucceeded = false;
 
+            //databaseName = databaseName + "_Test";
+
+            con.FireInfoMessageEventOnUserErrors = true;
+            con.InfoMessage += OnInfoMessage;
+            con.Open();
+
+            var testPath = @"D:\Test";
+            var testDbMdfPath = Path.Combine(testPath, Path.GetFileNameWithoutExtension(databaseName));
+            var testDbLdfPath = Path.Combine(testPath, Path.GetFileNameWithoutExtension(databaseName));
+
+            var fileSuffix = Path.GetFileNameWithoutExtension(backupPath);
+            var newFileSuffix = fileSuffix.Substring(fileSuffix.IndexOf("_"));
+
+            var testNewDbMdfPath = testDbMdfPath + newFileSuffix + ".mdf";
+            var testNewDbLdfPath = testDbLdfPath + newFileSuffix + "_.ldf";
+
+            using (var cmd = new SqlCommand(string.Format(
+                "Use Master ALTER DATABASE {0} SET OFFLINE WITH ROLLBACK IMMEDIATE restore database {0} from disk = {1} with move {2} to {3}, move {4} to {5}",
+                QuoteIdentifier(databaseName),
+                QuoteString(backupPath),
+                QuoteString(testDbMdfPath),
+                QuoteString(testNewDbMdfPath),
+                QuoteString(testDbLdfPath),
+                QuoteString(testNewDbLdfPath)
+                ), con))
+            {
+                try
+                {
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"Restore error for {databaseName}.");
+                }
+
+                isSucceeded = true;
+            }
+
+            con.Close();
+            con.InfoMessage -= OnInfoMessage;
+            con.FireInfoMessageEventOnUserErrors = false;
+
+            return isSucceeded && isBackupVerified;
+        }
         private void OnInfoMessage(object sender, SqlInfoMessageEventArgs e)
         {
             foreach (SqlError info in e.Errors)

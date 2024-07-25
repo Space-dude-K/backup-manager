@@ -160,7 +160,10 @@ namespace backup_manager
 
                                 var verifyResult = await sqlWorker.VerifyDatabaseAsync(conn, fileFullPath, db.DbName);
 
-                                
+                                if(verifyResult)
+                                {
+                                    var restoreResult = await sqlWorker.RestoreDatabaseAsync(conn, fileFullPath, db.DbName);
+                                }
                             }
                             else
                             {
