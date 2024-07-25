@@ -1,12 +1,6 @@
 ﻿using backup_manager.Interfaces;
 using Microsoft.Extensions.Logging;
-using Renci.SshNet;
-using System;
-using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace backup_manager.Workers
 {

@@ -169,30 +169,5 @@ namespace backup_manager
 
             await Task.WhenAll(serverTasks);
         }
-        
-        string ConnectAndDownload(string sshClientAddress, string backupCmd)
-        {
-            using (var client = new SshClient(sshClientAddress, "admin", "VMGPa$$w0rd"))
-            {
-                client.Connect();
-
-                Console.WriteLine($"Conn info: {client.ConnectionInfo.Host + " "
-                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                Console.WriteLine($"Run cmd -> {backupCmd}");
-
-                var cmd = client.RunCommand(backupCmd);
-                cmd.CommandTimeout = new TimeSpan(0, 0, 0, 50);
-                var execRes = cmd.Execute();
-
-                if (!string.IsNullOrEmpty(cmd.Error))
-                    Console.WriteLine($"Error: {cmd.Error}");
-
-                Console.WriteLine($"Exec results: {execRes}");
-
-                client.Disconnect();
-
-                return execRes;
-            }
-        }
     }
 }
