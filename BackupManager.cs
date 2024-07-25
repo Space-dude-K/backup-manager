@@ -139,10 +139,10 @@ namespace backup_manager
                         {
                             DataSource = db.Server,
                             InitialCatalog = db.DbName,
+                            IntegratedSecurity = false,
                             UserID = db.Login.AdmLogin,
                             Password = db.Login.AdminPass
                         }.ConnectionString;
-                        //var connStr = $"connetionString = \"Data Source={db.Server};Initial Catalog={db.DbName};User ID={db.Login.AdmLogin};Password={db.Login.AdminPass}";
 
                         using (SqlConnection conn = new SqlConnection(connStr))
                         {

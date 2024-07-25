@@ -18,7 +18,7 @@ namespace backup_manager.Workers
         {
             this.logger = logger;
         }
-        public void BackupDatabase(SqlConnection con, string databaseName, string backupName, string backupDescription, string backupFilename)
+        public void BackupDatabase(SqlConnection con, string databaseName, string backupPath, string backupDescription, string backupFilename)
         {
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
@@ -27,9 +27,9 @@ namespace backup_manager.Workers
             using (var cmd = new SqlCommand(string.Format(
                 "backup database {0} to disk = {1} with description = {2}, name = {3}, stats = 1",
                 QuoteIdentifier(databaseName),
-                QuoteString(backupFilename),
+                QuoteString(backupPath),
                 QuoteString(backupDescription),
-                QuoteString(backupName)), con))
+                QuoteString(backupFilename)), con))
             {
                 cmd.ExecuteNonQuery();
             }
@@ -46,6 +46,7 @@ namespace backup_manager.Workers
                 if (info.Class > 10)
                 {
                     // TODO: treat this as a genuine error
+                    logger.LogError($"{e.Message}");
                 }
                 else
                 {
