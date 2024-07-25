@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using backup_manager.Workers;
 using backup_manager.BackupWorkers;
 using System.Data.SqlClient;
+using System.Diagnostics;
 
 namespace backup_manager
 {
@@ -144,9 +145,27 @@ namespace backup_manager
                             Password = db.Login.AdminPass
                         }.ConnectionString;
 
-                        using (SqlConnection conn = new SqlConnection(connStr))
+                        using (SqlConnection conn = new(connStr))
                         {
-                            sqlWorker.BackupDatabase(conn, db.DbName, fileFullPath, db.Description, fileName);
+                            Stopwatch timer = new();
+                            timer.Start();
+
+                            var backupResult = await sqlWorker.BackupDatabaseAsync(conn, db.DbName, fileFullPath, db.Description, fileName);
+
+                            timer.Stop();
+
+                            if(backupResult)
+                            {
+                                loggerManager.LogInformation($"Task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+
+                                var verifyResult = await sqlWorker.VerifyDatabaseAsync(conn, fileFullPath, db.DbName);
+
+                                
+                            }
+                            else
+                            {
+                                loggerManager.LogInformation($"Task {db.Server} {db.DbName} failed!");
+                            }
                         }
 
                         loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
