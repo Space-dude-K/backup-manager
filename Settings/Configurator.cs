@@ -2,6 +2,7 @@
 using backup_manager.Model;
 using backup_manager.Settings.BackupPaths;
 using backup_manager.Settings.CheckObject;
+using backup_manager.Settings.DbObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using Microsoft.Extensions.Logging;
@@ -132,6 +133,16 @@ namespace backup_manager.Settings
 
             return sftpPath;
         }
+        public string LoadDbTempFolderPath()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            var dbPath = string.IsNullOrWhiteSpace(myConfig.Dbs.DbTempFolder)
+                ? Path.Combine(Environment.CurrentDirectory, "DbTemp") : myConfig.Dbs.DbTempFolder;
+
+            return dbPath;
+        }
         public List<Device> LoadDeviceSettings(List<Model.Login> logins = null)
         {
             List<Device> devices = [];
@@ -179,6 +190,49 @@ namespace backup_manager.Settings
             }
 
             return devices;
+        }
+        public List<Db> LoadDbSettings(List<Model.Login> logins = null)
+        {
+            List<Db> dbs = [];
+
+            SettingsConfiguration myConfig = (SettingsConfiguration)ConfigurationManager.GetSection("settings");
+
+            foreach (DbObjectElement dbSetting in myConfig.Dbs)
+            {
+                Db db = new();
+                db.DbName = dbSetting.DbName;
+                db.Server = dbSetting.ServerAddress;
+                db.BackupPath = dbSetting.BackupPath;
+
+                Enum.TryParse(dbSetting.BackupType, out BackupDbTypes dbType);
+                db.BackupType = dbType;
+
+                TimeSpan.TryParse(dbSetting.BackupPeriod, out TimeSpan period);
+                db.BackupPeriod = period;
+
+                db.Description = dbSetting.BackupDescription;
+                db.BackupName = dbSetting.BackupName;
+
+                if (!string.IsNullOrEmpty(dbSetting.LoginId) && logins.Count > 0)
+                {
+                    int loginId = 0;
+                    int.TryParse(dbSetting.LoginId, out loginId);
+
+                    try
+                    {
+                        db.Login = logins.SingleOrDefault(l => l.LoginId == loginId);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        loggerManager.LogError("Duplicate login id in config section.", ex);
+                        throw;
+                    }
+                }
+
+                dbs.Add(db);
+            }
+
+            return dbs;
         }
         public void SaveSmtpReqSettings(string mailLogin, string mailLoginSalt, string mailPassword, string mailPasswordSalt)
         {

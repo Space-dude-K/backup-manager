@@ -11,6 +11,7 @@ using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using backup_manager.Workers;
 using backup_manager.BackupWorkers;
+using System.Data.SqlClient;
 
 namespace backup_manager
 {
@@ -26,9 +27,10 @@ namespace backup_manager
         //private readonly ISshShellWorker sshShellWorker;
         private readonly ISshShellWorker sshShellWorker;
         private readonly IZipWorker zipWorker;
+        private readonly ISqlWorker sqlWorker;
 
         public BackupManager(IServiceProvider serviceCollection, ILogger<BackupManager> loggerManager, ITftpServer tftpServer, ISftpServer sftpServer,
-            ISshWorker sshWorker, ISshShellWorker sshShellWorker, IZipWorker zipWorker)
+            ISshWorker sshWorker, ISshShellWorker sshShellWorker, IZipWorker zipWorker, ISqlWorker sqlWorker)
         {
             this.serviceCollection = serviceCollection;
             this.loggerManager = loggerManager;
@@ -37,8 +39,10 @@ namespace backup_manager
             this.sshWorker = sshWorker;
             this.sshShellWorker = sshShellWorker;
             this.zipWorker = zipWorker;
+            this.sqlWorker = sqlWorker;
         }
-        public async Task Init(List<Device> devices, List<string> backupLocations, string backupSftpFolder)
+        public async Task Init(List<Device> devices, List<Db> dbs, 
+            List<string> backupLocations, string backupSftpFolder, string dbTempPath)
         {
             List<Task> serverTasks = null;
 
@@ -62,7 +66,7 @@ namespace backup_manager
                 serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
-                foreach (var device in devices)
+                /*foreach (var device in devices)
                 {
                     var dtStr = DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
                     var deviceNameAndSn = Utils.RemoveInvalidChars(device.Name + "_" + device.SerialNumber);
@@ -120,6 +124,33 @@ namespace backup_manager
                             .ConnectAndDownloadCiscoCfgAsync(device, backupCmd)));
                             break;
                     }
+                }*/
+
+                if (dbs.Count > 0)
+                {
+                    foreach (Db db in dbs)
+                    {
+                        var dtNamePart = db.BackupName;
+                        var dtStr = Utils.GetDateStrForFileName();
+                        var fileName = (dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
+                        var fileFullPath = Path.Combine(dbTempPath, fileName);
+
+                        var connStr = new SqlConnectionStringBuilder()
+                        {
+                            DataSource = db.Server,
+                            InitialCatalog = db.DbName,
+                            IntegratedSecurity = false,
+                            UserID = db.Login.AdmLogin,
+                            Password = db.Login.AdminPass
+                        }.ConnectionString;
+
+                        using (SqlConnection conn = new SqlConnection(connStr))
+                        {
+                            sqlWorker.BackupDatabase(conn, db.DbName, fileFullPath, db.Description, fileName);
+                        }
+
+                        loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
+                    }
                 }
 
                 await Task.WhenAll(tasks);
@@ -137,31 +168,6 @@ namespace backup_manager
             }
 
             await Task.WhenAll(serverTasks);
-        }
-        
-        string ConnectAndDownload(string sshClientAddress, string backupCmd)
-        {
-            using (var client = new SshClient(sshClientAddress, "admin", "VMGPa$$w0rd"))
-            {
-                client.Connect();
-
-                Console.WriteLine($"Conn info: {client.ConnectionInfo.Host + " "
-                    + client.ConnectionInfo.ServerVersion}, isConnected -> {client.IsConnected}");
-                Console.WriteLine($"Run cmd -> {backupCmd}");
-
-                var cmd = client.RunCommand(backupCmd);
-                cmd.CommandTimeout = new TimeSpan(0, 0, 0, 50);
-                var execRes = cmd.Execute();
-
-                if (!string.IsNullOrEmpty(cmd.Error))
-                    Console.WriteLine($"Error: {cmd.Error}");
-
-                Console.WriteLine($"Exec results: {execRes}");
-
-                client.Disconnect();
-
-                return execRes;
-            }
         }
     }
 }

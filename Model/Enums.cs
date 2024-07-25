@@ -45,7 +45,16 @@ namespace backup_manager.Model
             [Display(Name = "transfer upload mode tftp, transfer upload datatype config, transfer upload filename %file%, transfer upload path ., transfer upload serverip %addr%, transfer upload start")]
             Cisco_vWLC,
             [Display(Name = "backup startup-configuration to %addr% %file%")]
-            HP_shell
+            HP_shell,
+            [Display(Name = "backup startup-configuration to %addr% %file%")]
+            Sql
+        }
+        public enum BackupDbTypes
+        {
+            Full,
+            Diff,
+            Tail,
+            TRN
         }
     }
 }

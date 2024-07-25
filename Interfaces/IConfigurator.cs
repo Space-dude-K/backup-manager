@@ -4,6 +4,8 @@ namespace backup_manager.Interfaces
 {
     internal interface IConfigurator
     {
+        List<Db> LoadDbSettings(List<Login> logins = null);
+        string LoadDbTempFolderPath();
         List<Device> LoadDeviceSettings(List<Login> logins = null);
         List<Login> LoadLoginSettings(bool loadAsPlainText = true);
         List<string> LoadPathSettings();

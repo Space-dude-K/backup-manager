@@ -81,9 +81,12 @@ namespace backup_manager
                     }
 
                     var backupManager = servicesProvider.GetRequiredService<IBackupManager>();
-                    var deviceConfigs = conf.LoadDeviceSettings(conf.LoadLoginSettings());
+                    var reqs = conf.LoadLoginSettings();
+                    var deviceConfigs = conf.LoadDeviceSettings(reqs);
+                    var dbConfigs = conf.LoadDbSettings(reqs);
                     var backupPaths = conf.LoadPathSettings();
                     var sftpTempPath = conf.LoadSftpTempFolderPath();
+                    var dbTempPath = conf.LoadDbTempFolderPath();
 
                     /*if(deviceConfigs.Any(d => d.BackupCmdType == BackupCmdTypes.HP))
                     {
@@ -91,7 +94,7 @@ namespace backup_manager
                         Task.Run(() => sftpServer.RunSftpServer(sftpTempPath));
                     }*/
 
-                    await backupManager.Init(deviceConfigs, backupPaths, sftpTempPath);
+                    await backupManager.Init(deviceConfigs, dbConfigs, backupPaths, sftpTempPath, dbTempPath);
                 }
             }
             catch (Exception ex)
@@ -118,6 +121,7 @@ namespace backup_manager
                   .AddTransient<ISshWorker, SshWorker>()
                   .AddTransient<ISshShellWorker, SshShellWorker>()
                   .AddTransient<IZipWorker, ZipWorker>()
+                  .AddTransient<ISqlWorker, SqlWorker>()
                   .AddLogging(loggingBuilder =>
                   {
                       // configure Logging with NLog
