@@ -167,6 +167,8 @@ namespace backup_manager
                             timer.Stop();
 
                             loggerManager.LogInformation($"Backup task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+
+                            loggerManager.LogInformation($"Db {db.Server} - {db.DbName} backup status: {backupResult}");
                         }
 
                         //loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
@@ -191,6 +193,8 @@ namespace backup_manager
                             {
                                 loggerManager.LogInformation($"Verify task {db.Server} {db.DbName} skipped!");
                             }
+
+                            loggerManager.LogInformation($"Db {db.Server} - {db.DbName} verify status: {verifyResult}");
                         }
 
                         // 3. Restore DB
@@ -213,6 +217,8 @@ namespace backup_manager
                             {
                                 loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} skipped!");
                             }
+
+                            loggerManager.LogInformation($"Db {db.Server} - {db.DbName} restore status: {restoreResult}");
                         }
 
                         // 4. DBCHECK
@@ -225,16 +231,18 @@ namespace backup_manager
                                 timer.Start();
 
                                 dbCheckResult = await sqlWorker
-                                    .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName);
+                                    .CheckDatabaseAsync(conn, db.DbName);
 
                                 timer.Stop();
 
-                                loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+                                loggerManager.LogInformation($"Check task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             }
                             else
                             {
-                                loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} skipped!");
+                                loggerManager.LogInformation($"Check task {db.Server} {db.DbName} skipped!");
                             }
+
+                            loggerManager.LogInformation($"Db {db.Server} - {db.DbName} check status: {dbCheckResult}");
                         }
 
                     }

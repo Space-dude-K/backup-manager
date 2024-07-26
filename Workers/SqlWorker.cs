@@ -7,6 +7,8 @@ namespace backup_manager.Workers
     internal class SqlWorker : ISqlWorker
     {
         private bool isBackupVerified = false;
+        private bool isBackupChecked = false;
+
         private readonly ILogger<SqlWorker> logger;
 
         public SqlWorker(ILogger<SqlWorker> logger)
@@ -140,15 +142,10 @@ namespace backup_manager.Workers
             con.Open();
 
             var testPath = dbRestoreDataFolder;
-
             var testDbMdfName = databaseName;
             var testDbLdfName = databaseName + "_Log";
-            //var testDbMdfPath = Path.Combine(testPath, Path.GetFileNameWithoutExtension(databaseName));
-            //var testDbLdfPath = Path.Combine(testPath, Path.GetFileNameWithoutExtension(databaseName));
-
             var fileSuffix = Path.GetFileNameWithoutExtension(backupPath);
             var newFileSuffix = fileSuffix.Substring(fileSuffix.IndexOf("_"));
-
             var testNewDbMdfPath = Path.Combine(testPath, testDbMdfName + newFileSuffix + ".mdf");
             var testNewDbLdfPath = Path.Combine(testPath, testDbLdfName + newFileSuffix + ".ldf");
 
@@ -164,6 +161,7 @@ namespace backup_manager.Workers
             {
                 try
                 {
+                    cmd.CommandTimeout = 360;
                     await cmd.ExecuteNonQueryAsync();
                 }
                 catch (Exception ex)
@@ -180,11 +178,41 @@ namespace backup_manager.Workers
 
             return isSucceeded && isBackupVerified;
         }
+        public async Task<bool> CheckDatabaseAsync(SqlConnection con, string databaseName)
+        {
+            bool isSucceeded = false;
+
+            con.FireInfoMessageEventOnUserErrors = true;
+            con.InfoMessage += OnInfoMessage;
+            con.Open();
+
+            using (var cmd = new SqlCommand(string.Format(
+                "dbcc checkdb {0} with EXTENDED_LOGICAL_CHECKS",
+                Brackets(databaseName)), con))
+            {
+                try
+                {
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"Check error for {databaseName}.");
+                }
+
+                isSucceeded = true;
+            }
+
+            con.Close();
+            con.InfoMessage -= OnInfoMessage;
+            con.FireInfoMessageEventOnUserErrors = false;
+
+            return isSucceeded && isBackupChecked;
+        }
         private void OnInfoMessage(object sender, SqlInfoMessageEventArgs e)
         {
             foreach (SqlError info in e.Errors)
             {
-                logger.LogInformation($"Class: {info.Class}, state: {info.State}, number: {info.Number}");
+                logger.LogDebug($"Class: {info.Class}, state: {info.State}, number: {info.Number}");
 
                 if (info.Class > 10)
                 {
@@ -194,7 +222,7 @@ namespace backup_manager.Workers
                 else
                 {
                     // TODO: treat this as a progress message
-                    logger.LogInformation($"Msg source {e.Source}, Current progress: {e.Message}");
+                    logger.LogDebug($"Msg source {e.Source}, Current progress: {e.Message}");
                 }
 
                 // Success verification
@@ -202,12 +230,24 @@ namespace backup_manager.Workers
                 {
                     isBackupVerified = true;
                 }
+                // Success check
+                if (info.Number == 8989)
+                {
+                    // Exclude db name part
+                    var msg = info.Message.Substring(0, info.Message.IndexOf("\""));
+                    isBackupChecked = !msg.Any(c => char.IsNumber(c) && (int)Char.GetNumericValue(c) > 0);
+
+                    logger.LogDebug($"Backup checkd status: {isBackupChecked}");
+                }
             }
         }
-
         private string QuoteIdentifier(string name)
         {
             return "[" + name.Replace("]", "]]") + "]";
+        }
+        private string Brackets(string name)
+        {
+            return "(" + name + ")";
         }
 
         private string QuoteString(string text)
