@@ -42,7 +42,7 @@ namespace backup_manager
             this.zipWorker = zipWorker;
             this.sqlWorker = sqlWorker;
         }
-        public async Task Init(List<Device> devices, List<Db> dbs, 
+        public async Task Init(List<Device> devices, Db? testDb, List<Db> dbs, 
             List<string> backupLocations, string backupSftpFolder, string dbTempPath)
         {
             List<Task> serverTasks = null;
@@ -129,10 +129,19 @@ namespace backup_manager
 
                 if (dbs.Count > 0)
                 {
+                    var connStrForTestServer = new SqlConnectionStringBuilder()
+                    {
+                        DataSource = testDb.Server,
+                        InitialCatalog = testDb.DbName,
+                        IntegratedSecurity = false,
+                        UserID = testDb.Login.AdmLogin,
+                        Password = testDb.Login.AdminPass
+                    }.ConnectionString;
+
                     foreach (Db db in dbs)
                     {
                         var dtNamePart = db.BackupName;
-                        var dtStr = Utils.GetDateStrForFileName();
+                        var dtStr = Utils.GetDateStrForBackupFileName();
                         var fileName = (dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
                         var fileFullPath = Path.Combine(dbTempPath, fileName);
 
@@ -145,33 +154,89 @@ namespace backup_manager
                             Password = db.Login.AdminPass
                         }.ConnectionString;
 
+                        // 1. Backup DB
+                        bool backupResult = false;
                         using (SqlConnection conn = new(connStr))
                         {
                             Stopwatch timer = new();
                             timer.Start();
 
-                            var backupResult = await sqlWorker.BackupDatabaseAsync(conn, db.DbName, fileFullPath, db.Description, fileName);
+                            backupResult = await sqlWorker
+                                .BackupDatabaseAsync(conn, db.DbName, fileFullPath, db.Description, fileName);
 
                             timer.Stop();
 
-                            if(backupResult)
+                            loggerManager.LogInformation($"Backup task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+                        }
+
+                        //loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
+
+                        // 2. Verify DB
+                        bool verifyResult = false;
+                        using (SqlConnection conn = new(connStrForTestServer))
+                        {
+                            if (backupResult)
                             {
-                                loggerManager.LogInformation($"Task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+                                Stopwatch timer = new();
+                                timer.Start();
 
-                                var verifyResult = await sqlWorker.VerifyDatabaseAsync(conn, fileFullPath, db.DbName);
+                                verifyResult = await sqlWorker
+                                    .VerifyDatabaseAsync(conn, fileFullPath, db.DbName);
 
-                                if(verifyResult)
-                                {
-                                    var restoreResult = await sqlWorker.RestoreDatabaseAsync(conn, fileFullPath, db.DbName);
-                                }
+                                timer.Stop();
+
+                                loggerManager.LogInformation($"Veriyfy task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             }
                             else
                             {
-                                loggerManager.LogInformation($"Task {db.Server} {db.DbName} failed!");
+                                loggerManager.LogInformation($"Verify task {db.Server} {db.DbName} skipped!");
                             }
                         }
 
-                        loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
+                        // 3. Restore DB
+                        bool restoreResult = false;
+                        using (SqlConnection conn = new(connStrForTestServer))
+                        {
+                            if (verifyResult)
+                            {
+                                Stopwatch timer = new();
+                                timer.Start();
+
+                                restoreResult = await sqlWorker
+                                    .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName);
+
+                                timer.Stop();
+
+                                loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+                            }
+                            else
+                            {
+                                loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} skipped!");
+                            }
+                        }
+
+                        // 4. DBCHECK
+                        bool dbCheckResult = false;
+                        using (SqlConnection conn = new(connStrForTestServer))
+                        {
+                            if (restoreResult)
+                            {
+                                Stopwatch timer = new();
+                                timer.Start();
+
+                                restoreResult = await sqlWorker
+                                    .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName);
+
+                                timer.Stop();
+
+                                loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+                            }
+                            else
+                            {
+                                loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} skipped!");
+                            }
+                        }
+
                     }
                 }
 

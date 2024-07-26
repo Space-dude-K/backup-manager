@@ -10,6 +10,7 @@ namespace backup_manager.Interfaces
         List<Login> LoadLoginSettings(bool loadAsPlainText = true);
         List<string> LoadPathSettings();
         string LoadSftpTempFolderPath();
+        Db LoadTestDbConfigs(List<Login> logins = null);
         void SaveLoginSettings(Login login);
         void SaveSmtpReqSettings(string mailLogin, string mailLoginSalt, string mailPassword, string mailPasswordSalt);
     }

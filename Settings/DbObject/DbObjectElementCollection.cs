@@ -22,5 +22,23 @@ namespace backup_manager.Settings.DbObject
             get { return (string)this["dbTempFolder"]; }
             set { this["dbTempFolder"] = value; }
         }
+        [ConfigurationProperty("testDbName", IsDefaultCollection = false)]
+        public string TestDbName
+        {
+            get { return (string)this["testDbName"]; }
+            set { this["testDbName"] = value; }
+        }
+        [ConfigurationProperty("testServerAddress", IsDefaultCollection = false)]
+        public string TestServerAddress
+        {
+            get { return (string)this["testServerAddress"]; }
+            set { this["testServerAddress"] = value; }
+        }
+        [ConfigurationProperty("loginId", IsDefaultCollection = false)]
+        public string LoginId
+        {
+            get { return (string)this["loginId"]; }
+            set { this["loginId"] = value; }
+        }
     }
 }

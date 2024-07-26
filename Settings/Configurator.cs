@@ -6,6 +6,7 @@ using backup_manager.Settings.DbObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Configuration;
 using static backup_manager.Model.Enums;
 
@@ -142,6 +143,50 @@ namespace backup_manager.Settings
                 ? Path.Combine(Environment.CurrentDirectory, "DbTemp") : myConfig.Dbs.DbTempFolder;
 
             return dbPath;
+        }
+        public Db LoadTestDbConfigs(List<Model.Login> logins = null)
+        {
+            Db db = new();
+            db.DbName = LoadTestDbName();
+            db.Server = LoadTestServerAddress();
+            db.Login = LoadTestLogin(logins);
+
+            return db;
+        }
+        public string LoadTestDbName()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            return myConfig.Dbs.TestDbName;
+        }
+        public string LoadTestServerAddress()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            return myConfig.Dbs.TestServerAddress;
+        }
+        public Model.Login LoadTestLogin(List<Model.Login> logins = null)
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            int loginId = 0;
+            Model.Login? login = null;
+
+            try
+            {
+                int.TryParse(myConfig.Dbs.LoginId, out loginId);
+                login = logins.Find(l => l.LoginId.Equals(loginId));
+            }
+            catch (Exception ex)
+            {
+                loggerManager.LogError(ex, $"Exception while loading loginId for test sql server.");
+                throw;
+            }
+
+            return login;
         }
         public List<Device> LoadDeviceSettings(List<Model.Login> logins = null)
         {
