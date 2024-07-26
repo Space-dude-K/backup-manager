@@ -83,10 +83,12 @@ namespace backup_manager
                     var backupManager = servicesProvider.GetRequiredService<IBackupManager>();
                     var reqs = conf.LoadLoginSettings();
                     var deviceConfigs = conf.LoadDeviceSettings(reqs);
+                    var dbTestConfigs = conf.LoadTestDbConfigs(reqs);
                     var dbConfigs = conf.LoadDbSettings(reqs);
                     var backupPaths = conf.LoadPathSettings();
                     var sftpTempPath = conf.LoadSftpTempFolderPath();
                     var dbTempPath = conf.LoadDbTempFolderPath();
+                    var dbRestoreDataFolder = conf.LoadDbRestoreDataFolder();
 
                     /*if(deviceConfigs.Any(d => d.BackupCmdType == BackupCmdTypes.HP))
                     {
@@ -94,7 +96,8 @@ namespace backup_manager
                         Task.Run(() => sftpServer.RunSftpServer(sftpTempPath));
                     }*/
 
-                    await backupManager.Init(deviceConfigs, dbConfigs, backupPaths, sftpTempPath, dbTempPath);
+                    await backupManager.Init(deviceConfigs, dbTestConfigs, dbConfigs, backupPaths, sftpTempPath, 
+                        dbTempPath, dbRestoreDataFolder);
                 }
             }
             catch (Exception ex)

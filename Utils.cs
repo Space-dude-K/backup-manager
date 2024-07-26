@@ -322,6 +322,10 @@ namespace backup_manager
         {
             return DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
         }
+        internal static string GetDateStrForBackupFileName()
+        {
+            return DateTime.Now.ToString("ddMMyyyy_HHMMss.fff", CultureInfo.InvariantCulture);
+        }
         internal static string GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
