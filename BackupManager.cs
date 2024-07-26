@@ -43,7 +43,7 @@ namespace backup_manager
             this.sqlWorker = sqlWorker;
         }
         public async Task Init(List<Device> devices, Db? testDb, List<Db> dbs, 
-            List<string> backupLocations, string backupSftpFolder, string dbTempPath)
+            List<string> backupLocations, string backupSftpFolder, string dbTempPath, string dbRestoreDataFolder)
         {
             List<Task> serverTasks = null;
 
@@ -203,7 +203,7 @@ namespace backup_manager
                                 timer.Start();
 
                                 restoreResult = await sqlWorker
-                                    .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName);
+                                    .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName, dbRestoreDataFolder);
 
                                 timer.Stop();
 
@@ -224,7 +224,7 @@ namespace backup_manager
                                 Stopwatch timer = new();
                                 timer.Start();
 
-                                restoreResult = await sqlWorker
+                                dbCheckResult = await sqlWorker
                                     .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName);
 
                                 timer.Stop();

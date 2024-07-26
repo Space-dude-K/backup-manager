@@ -130,7 +130,8 @@ namespace backup_manager.Workers
 
             return isSucceeded && isBackupVerified;
         }
-        public async Task<bool> RestoreDatabaseWithMoveAsync(SqlConnection con, string backupPath, string databaseName)
+        public async Task<bool> RestoreDatabaseWithMoveAsync(SqlConnection con, 
+            string backupPath, string databaseName, string dbRestoreDataFolder)
         {
             bool isSucceeded = false;
 
@@ -138,7 +139,7 @@ namespace backup_manager.Workers
             con.InfoMessage += OnInfoMessage;
             con.Open();
 
-            var testPath = @"D:\MSSQL\ADMTEST\Data";
+            var testPath = dbRestoreDataFolder;
 
             var testDbMdfName = databaseName;
             var testDbLdfName = databaseName + "_Log";

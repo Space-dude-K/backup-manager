@@ -144,6 +144,13 @@ namespace backup_manager.Settings
 
             return dbPath;
         }
+        public string LoadDbRestoreDataFolder()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            return myConfig.Dbs.DbRestoreDataFolder;
+        }
         public Db LoadTestDbConfigs(List<Model.Login> logins = null)
         {
             Db db = new();

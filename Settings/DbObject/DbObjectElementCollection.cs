@@ -40,5 +40,11 @@ namespace backup_manager.Settings.DbObject
             get { return (string)this["loginId"]; }
             set { this["loginId"] = value; }
         }
+        [ConfigurationProperty("dbRestoreDataFolder", IsDefaultCollection = false)]
+        public string DbRestoreDataFolder
+        {
+            get { return (string)this["dbRestoreDataFolder"]; }
+            set { this["dbRestoreDataFolder"] = value; }
+        }
     }
 }
