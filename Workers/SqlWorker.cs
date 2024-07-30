@@ -208,6 +208,75 @@ namespace backup_manager.Workers
 
             return isSucceeded && isBackupChecked;
         }
+        // IF EXISTS (SELECT name FROM master.sys.databases WHERE name = N'YourDatabaseName')
+        public async Task<bool> DatabaseExistAsync(SqlConnection con, string databaseName)
+        {
+            bool isSucceeded = false;
+            bool isDbExist = false;
+
+            con.FireInfoMessageEventOnUserErrors = true;
+            con.InfoMessage += OnInfoMessage;
+            con.Open();
+
+            using (var cmd = new SqlCommand(string.Format(
+                "SELECT name FROM master.sys.databases WHERE name = {0}",
+                QuoteString(databaseName)
+                ), con))
+            {
+                try
+                {
+                    var r = await cmd.ExecuteScalarAsync();
+
+                    if((string)r == databaseName)
+                    {
+                        isDbExist = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"Db exist error for {databaseName}.");
+                }
+
+                isSucceeded = true;
+            }
+
+            con.Close();
+            con.InfoMessage -= OnInfoMessage;
+            con.FireInfoMessageEventOnUserErrors = false;
+
+            return isSucceeded && isDbExist;
+        }
+        public async Task<bool> DeleteDatabaseAsync(SqlConnection con, string databaseName)
+        {
+            bool isSucceeded = false;
+
+            con.FireInfoMessageEventOnUserErrors = true;
+            con.InfoMessage += OnInfoMessage;
+            con.Open();
+
+            using (var cmd = new SqlCommand(string.Format(
+                "drop database {0}",
+                QuoteIdentifier(databaseName)
+                ), con))
+            {
+                try
+                {
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"Delete error for {databaseName}.");
+                }
+
+                isSucceeded = true;
+            }
+
+            con.Close();
+            con.InfoMessage -= OnInfoMessage;
+            con.FireInfoMessageEventOnUserErrors = false;
+
+            return isSucceeded;
+        }
         private void OnInfoMessage(object sender, SqlInfoMessageEventArgs e)
         {
             foreach (SqlError info in e.Errors)
@@ -237,7 +306,7 @@ namespace backup_manager.Workers
                     var msg = info.Message.Substring(0, info.Message.IndexOf("\""));
                     isBackupChecked = !msg.Any(c => char.IsNumber(c) && (int)Char.GetNumericValue(c) > 0);
 
-                    logger.LogDebug($"Backup checkd status: {isBackupChecked}");
+                    logger.LogDebug($"Backup checked status: {isBackupChecked}");
                 }
             }
         }

@@ -245,6 +245,40 @@ namespace backup_manager
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} check status: {dbCheckResult}");
                         }
 
+                        // 5. Cleanup
+                        bool dbDeleteResult = false;
+
+                        bool isDbExist = false;
+                        using (SqlConnection conn = new(connStrForTestServer))
+                        {
+                            Stopwatch timer = new();
+                            timer.Start();
+
+                            isDbExist = await sqlWorker.DatabaseExistAsync(conn, db.DbName);
+
+                            timer.Stop();
+
+                            loggerManager.LogInformation($"Db exist task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+                            loggerManager.LogInformation($"Db {db.Server} - {db.DbName} is exist? {isDbExist}");
+                        }
+
+                        if(isDbExist)
+                        {
+                            using (SqlConnection conn = new(connStrForTestServer))
+                            {
+                                Stopwatch timer = new();
+                                timer.Start();
+
+                                dbDeleteResult = await sqlWorker
+                                    .DeleteDatabaseAsync(conn, db.DbName);
+
+                                timer.Stop();
+
+                                loggerManager.LogInformation($"Delete task {db.Server} {db.DbName} completed: {timer.Elapsed}");
+
+                                loggerManager.LogInformation($"Db {db.Server} - {db.DbName} delete status: {dbDeleteResult}");
+                            }
+                        }
                     }
                 }
 
