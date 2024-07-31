@@ -6,7 +6,6 @@ using backup_manager.Settings.DbObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
 using System.Configuration;
 using static backup_manager.Model.Enums;
 

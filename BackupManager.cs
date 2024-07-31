@@ -127,6 +127,7 @@ namespace backup_manager
                     }
                 }*/
 
+                // TODO. Split by server for async proccessing
                 if (dbs.Count > 0)
                 {
                     var connStrForTestServer = new SqlConnectionStringBuilder()
@@ -141,8 +142,9 @@ namespace backup_manager
                     foreach (Db db in dbs)
                     {
                         var dtNamePart = db.BackupName;
+                        var serverAndInstanceName = db.Server;
                         var dtStr = Utils.GetDateStrForBackupFileName();
-                        var fileName = (dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
+                        var fileName = (serverAndInstanceName + "_" + dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
                         var fileFullPath = Path.Combine(dbTempPath, fileName);
 
                         var connStr = new SqlConnectionStringBuilder()
@@ -292,6 +294,10 @@ namespace backup_manager
                 {
                     zipWorker.SafelyCreateZipFromDirectory(file);
                 }
+                /*foreach (var file in Directory.GetFiles(dbTempPath))
+                {
+                    zipWorker.SafelyCreateZipFromDirectory(file);
+                }*/
 
                 loggerManager.LogInformation($"Zip tasks comleted.");
             }

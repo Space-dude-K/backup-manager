@@ -50,7 +50,7 @@ namespace backup_manager
         }
         internal static string GetCleanFileName(this string rawFileName)
         {
-            return string.Join("", rawFileName.Split(Path.GetInvalidFileNameChars())).Replace(" ", "");
+            return string.Join("_", rawFileName.Split(Path.GetInvalidFileNameChars())).Replace(" ", "");
         }
     }
 }
