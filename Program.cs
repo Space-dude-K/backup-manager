@@ -87,6 +87,7 @@ namespace backup_manager
                     var dbConfigs = conf.LoadDbSettings(reqs);
                     var backupPaths = conf.LoadPathSettings();
                     var sftpTempPath = conf.LoadSftpTempFolderPath();
+                    var clearAfterInDays = conf.LoadClearAfterInDays();
                     var dbTempPath = conf.LoadDbTempFolderPath();
                     var dbRestoreDataFolder = conf.LoadDbRestoreDataFolder();
 
@@ -96,7 +97,7 @@ namespace backup_manager
                         Task.Run(() => sftpServer.RunSftpServer(sftpTempPath));
                     }*/
 
-                    await backupManager.Init(deviceConfigs, dbTestConfigs, dbConfigs, backupPaths, sftpTempPath, 
+                    await backupManager.Init(deviceConfigs, dbTestConfigs, dbConfigs, backupPaths, clearAfterInDays, sftpTempPath, 
                         dbTempPath, dbRestoreDataFolder);
                 }
             }

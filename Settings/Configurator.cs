@@ -133,12 +133,15 @@ namespace backup_manager.Settings
 
             return sftpPath;
         }
-        public string LoadClearAfterInDays()
+        public int LoadClearAfterInDays()
         {
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            return myConfig.BackupPaths.ClearAfterInDays;
+            int days = 0;
+            int.TryParse(myConfig.BackupPaths.ClearAfterInDays, out days);
+
+            return days;
         }
         public string LoadDbTempFolderPath()
         {

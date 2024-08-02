@@ -43,7 +43,7 @@ namespace backup_manager
             this.sqlWorker = sqlWorker;
         }
         public async Task Init(List<Device> devices, Db? testDb, List<Db> dbs, 
-            List<string> backupLocations, string backupSftpFolder, string dbTempPath, string dbRestoreDataFolder)
+            List<string> backupLocations, int clearAfterInDays, string backupSftpFolder, string dbTempPath, string dbRestoreDataFolder)
         {
             List<Task> serverTasks = null;
 
