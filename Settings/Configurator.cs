@@ -138,7 +138,7 @@ namespace backup_manager.Settings
             Configuration config = LoadConfig();
             SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
 
-            int days = 0;
+            int days = 30;
             int.TryParse(myConfig.BackupPaths.ClearAfterInDays, out days);
 
             return days;

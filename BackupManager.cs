@@ -325,6 +325,13 @@ namespace backup_manager
 
                 loggerManager.LogInformation($"Backup tasks comleted.");
 
+                // Clear
+                foreach(var dir in backupLocations)
+                {
+                    loggerManager.LogInformation($"Clear dir {dir} files older than {clearAfterInDays} days");
+                    Utils.ClearOldFilesAndDirs(dir, clearAfterInDays);
+                }
+
                 // Zip
                 foreach(var file in Directory.GetFiles(backupSftpFolder))
                 {
@@ -336,13 +343,6 @@ namespace backup_manager
                 }
 
                 loggerManager.LogInformation($"Zip tasks comleted.");
-
-                // Copy
-                foreach(var copyPath in backupLocations)
-                {
-                    // Copy DB backups
-
-                }
             }
 
             await Task.WhenAll(serverTasks);
