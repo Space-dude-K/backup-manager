@@ -28,3 +28,5 @@ InProgress:
 Интеграция с zabbix и разработка дашборда
 TPL
 Аутентификация для netwrok share copy
+Интеграция с vSphere
+Интеграция с Veeam
