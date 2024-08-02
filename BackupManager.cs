@@ -13,6 +13,7 @@ using backup_manager.Workers;
 using backup_manager.BackupWorkers;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.IO;
 
 namespace backup_manager
 {
@@ -43,7 +44,7 @@ namespace backup_manager
             this.sqlWorker = sqlWorker;
         }
         public async Task Init(List<Device> devices, Db? testDb, List<Db> dbs, 
-            List<string> backupLocations, string backupSftpFolder, string dbTempPath, string dbRestoreDataFolder)
+            List<string> backupLocations, int clearAfterInDays, string backupSftpFolder, string dbTempPath, string dbRestoreDataFolder)
         {
             List<Task> serverTasks = null;
 
@@ -67,7 +68,7 @@ namespace backup_manager
                 serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
-                /*foreach (var device in devices)
+                foreach (var device in devices)
                 {
                     var dtStr = DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
                     var deviceNameAndSn = Utils.RemoveInvalidChars(device.Name + "_" + device.SerialNumber);
@@ -80,7 +81,8 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    switch (device.BackupCmdType)
+                    
+                    /*switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
                             tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteAsync(device, backupCmd)));
@@ -124,9 +126,11 @@ namespace backup_manager
                             tasks.Add(Task.Run(() => sshShellWorker
                             .ConnectAndDownloadCiscoCfgAsync(device, backupCmd)));
                             break;
-                    }
-                }*/
+                    }*/
 
+                }
+                    
+                // TODO. Split by server for async proccessing
                 if (dbs.Count > 0)
                 {
                     var connStrForTestServer = new SqlConnectionStringBuilder()
@@ -138,12 +142,23 @@ namespace backup_manager
                         Password = testDb.Login.AdminPass
                     }.ConnectionString;
 
+                    List<DbResult> dbResults = [];
+
                     foreach (Db db in dbs)
                     {
                         var dtNamePart = db.BackupName;
+                        var serverAndInstanceName = db.Server;
                         var dtStr = Utils.GetDateStrForBackupFileName();
-                        var fileName = (dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
-                        var fileFullPath = Path.Combine(dbTempPath, fileName);
+                        var fileName = (serverAndInstanceName + "_" + dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
+                        var fileFullPath = Path.Combine(db.BackupPath, fileName);
+
+                        var server = db.Server.Split("\\")[0];
+                        var disk = db.BackupPath.Split(":")[0];
+                        var pathAfterDisk = db.BackupPath.Substring(Path.GetPathRoot(db.BackupPath).Length);
+                        var file = Path.GetFileName(fileFullPath);
+
+                        var sourceFile = Path.Combine("\\\\" + server + "\\" + disk + "$" + "\\" + pathAfterDisk, file);
+                        var destFile = Path.Combine(dbTempPath, file);
 
                         var connStr = new SqlConnectionStringBuilder()
                         {
@@ -153,6 +168,10 @@ namespace backup_manager
                             UserID = db.Login.AdmLogin,
                             Password = db.Login.AdminPass
                         }.ConnectionString;
+
+                        DbResult dbResult = new();
+                        dbResult.ServerAndInstanceName = db.Server;
+                        dbResult.DbName = db.DbName;
 
                         // 1. Backup DB
                         bool backupResult = false;
@@ -165,10 +184,15 @@ namespace backup_manager
                                 .BackupDatabaseAsync(conn, db.DbName, fileFullPath, db.Description, fileName);
 
                             timer.Stop();
+                            dbResult.CompletionTime += timer.ElapsedMilliseconds;
 
                             loggerManager.LogInformation($"Backup task {db.Server} {db.DbName} completed: {timer.Elapsed}");
-
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} backup status: {backupResult}");
+
+                            // Copy to test server
+                            File.Move(sourceFile, destFile);
+
+                            dbResult.BackupStatus = backupResult;
                         }
 
                         //loggerManager.LogInformation($"{db.DbName} {db.BackupType.ToString()}, {db.BackupPeriod} -> {fileFullPath}");
@@ -186,6 +210,7 @@ namespace backup_manager
                                     .VerifyDatabaseAsync(conn, fileFullPath, db.DbName);
 
                                 timer.Stop();
+                                dbResult.CompletionTime += timer.ElapsedMilliseconds;
 
                                 loggerManager.LogInformation($"Veriyfy task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             }
@@ -195,6 +220,8 @@ namespace backup_manager
                             }
 
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} verify status: {verifyResult}");
+
+                            dbResult.VerifyStatus = verifyResult;
                         }
 
                         // 3. Restore DB
@@ -210,6 +237,7 @@ namespace backup_manager
                                     .RestoreDatabaseWithMoveAsync(conn, fileFullPath, db.DbName, dbRestoreDataFolder);
 
                                 timer.Stop();
+                                dbResult.CompletionTime += timer.ElapsedMilliseconds;
 
                                 loggerManager.LogInformation($"Restore task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             }
@@ -219,6 +247,7 @@ namespace backup_manager
                             }
 
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} restore status: {restoreResult}");
+                            dbResult.RestoreStatus = restoreResult;
                         }
 
                         // 4. DBCHECK
@@ -234,6 +263,7 @@ namespace backup_manager
                                     .CheckDatabaseAsync(conn, db.DbName);
 
                                 timer.Stop();
+                                dbResult.CompletionTime += timer.ElapsedMilliseconds;
 
                                 loggerManager.LogInformation($"Check task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             }
@@ -243,12 +273,13 @@ namespace backup_manager
                             }
 
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} check status: {dbCheckResult}");
+                            dbResult.DbCheckStatus = dbCheckResult;
                         }
 
                         // 5. Cleanup
                         bool dbDeleteResult = false;
-
                         bool isDbExist = false;
+
                         using (SqlConnection conn = new(connStrForTestServer))
                         {
                             Stopwatch timer = new();
@@ -257,6 +288,7 @@ namespace backup_manager
                             isDbExist = await sqlWorker.DatabaseExistAsync(conn, db.DbName);
 
                             timer.Stop();
+                            dbResult.CompletionTime += timer.ElapsedMilliseconds;
 
                             loggerManager.LogInformation($"Db exist task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} is exist? {isDbExist}");
@@ -273,27 +305,67 @@ namespace backup_manager
                                     .DeleteDatabaseAsync(conn, db.DbName);
 
                                 timer.Stop();
+                                dbResult.CompletionTime += timer.ElapsedMilliseconds;
 
                                 loggerManager.LogInformation($"Delete task {db.Server} {db.DbName} completed: {timer.Elapsed}");
-
                                 loggerManager.LogInformation($"Db {db.Server} - {db.DbName} delete status: {dbDeleteResult}");
+
+                                dbResult.DeleteStatus = dbDeleteResult;
                             }
                         }
+
+                        dbResults.Add(dbResult);
+                    }
+
+                    foreach (DbResult res in dbResults)
+                    {
+                        loggerManager.LogInformation($"{res.ServerAndInstanceName}/{res.DbName}");
+                        loggerManager.LogInformation($"" +
+                            $"\nBackup:{res.BackupStatus}" +
+                            $"\nVerify:{res.VerifyStatus}" +
+                            $"\nRestore:{res.RestoreStatus}" +
+                            $"\nDbCheck:{res.DbCheckStatus}" +
+                            $"\nDelete:{res.DeleteStatus}");
+
+                        var elapsedDt = TimeSpan.FromMilliseconds(res.CompletionTime);
+
+                        loggerManager.LogInformation($"Elapsed time: {res.CompletionTime} " +
+                            $"Completed in: {elapsedDt.Hours} h {elapsedDt.Minutes} m {elapsedDt.Seconds} s");
                     }
                 }
 
                 await Task.WhenAll(tasks);
                 await Task.Delay(10000);
 
-                loggerManager.LogInformation($"Backup tasks comleted.");
+                loggerManager.LogInformation($"Backup tasks completed.");
+
+                // Clear
+                foreach(var dir in backupLocations)
+                {
+                    var d = Path.Combine(dir, "Db");
+                    loggerManager.LogInformation($"Clear dir {d} files older than {clearAfterInDays} days");
+                    Utils.ClearOldFiles(d, clearAfterInDays);
+                }
+
+                loggerManager.LogInformation($"Clear tasks completed.");
 
                 // Zip
-                foreach(var file in Directory.GetFiles(backupSftpFolder))
+                foreach (var file in Directory.GetFiles(backupSftpFolder))
                 {
-                    zipWorker.SafelyCreateZipFromDirectory(file);
+                    zipWorker.SafelyCreateZipFromDirectory(file, backupLocations);
+                }
+                foreach (var file in Directory.GetFiles(dbTempPath))
+                {
+                    zipWorker.SafelyCreateZipFromDirectory(file, backupLocations, true);
                 }
 
                 loggerManager.LogInformation($"Zip tasks comleted.");
+
+                // Clear temp
+                //Utils.ClearOldSubDirs(backupSftpFolder, 0);
+                //Utils.ClearOldSubDirs(dbTempPath, 0);
+
+                loggerManager.LogInformation($"Clear temp tasks completed.");
             }
 
             await Task.WhenAll(serverTasks);

@@ -6,7 +6,6 @@ using backup_manager.Settings.DbObject;
 using backup_manager.Settings.Email;
 using backup_manager.Settings.Login;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
 using System.Configuration;
 using static backup_manager.Model.Enums;
 
@@ -133,6 +132,16 @@ namespace backup_manager.Settings
                 ? Path.Combine(Environment.CurrentDirectory, "SftpTemp") : myConfig.BackupPaths.SftpTempFolder;
 
             return sftpPath;
+        }
+        public int LoadClearAfterInDays()
+        {
+            Configuration config = LoadConfig();
+            SettingsConfiguration myConfig = config.GetSection("settings") as SettingsConfiguration;
+
+            int days = 30;
+            int.TryParse(myConfig.BackupPaths.ClearAfterInDays, out days);
+
+            return days;
         }
         public string LoadDbTempFolderPath()
         {

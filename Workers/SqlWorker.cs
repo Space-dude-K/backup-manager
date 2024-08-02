@@ -1,11 +1,14 @@
 ﻿using backup_manager.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Data.Common;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace backup_manager.Workers
 {
     internal class SqlWorker : ISqlWorker
     {
+        private bool isBackupSuccessful = false;
         private bool isBackupVerified = false;
         private bool isBackupChecked = false;
 
@@ -15,30 +18,8 @@ namespace backup_manager.Workers
         {
             this.logger = logger;
         }
-        public void BackupDatabase(SqlConnection con, string databaseName, string backupPath, string backupDescription, string backupFilename)
-        {
-            con.FireInfoMessageEventOnUserErrors = true;
-            con.InfoMessage += OnInfoMessage;
-            con.Open();
-
-            using (var cmd = new SqlCommand(string.Format(
-                "backup database {0} to disk = {1} with description = {2}, name = {3}, stats = 1",
-                QuoteIdentifier(databaseName),
-                QuoteString(backupPath),
-                QuoteString(backupDescription),
-                QuoteString(backupFilename)), con))
-            {
-                cmd.ExecuteNonQuery();
-            }
-
-            con.Close();
-            con.InfoMessage -= OnInfoMessage;
-            con.FireInfoMessageEventOnUserErrors = false;
-        }
         public async Task<bool> BackupDatabaseAsync(SqlConnection con, string databaseName, string backupPath, string backupDescription, string backupFilename)
         {
-            bool isSucceeded = false;
-
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
             con.Open();
@@ -58,20 +39,16 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Backup error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
             con.Close();
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
-            return isSucceeded;
+            return isBackupSuccessful;
         }
         public async Task<bool> VerifyDatabaseAsync(SqlConnection con, string backupPath, string databaseName)
         {
-            bool isSucceeded = false;
-
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
             con.Open();
@@ -88,8 +65,6 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Verify error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
             con.Close();
@@ -98,12 +73,10 @@ namespace backup_manager.Workers
 
             logger.LogInformation($"Backup verify status: {isBackupVerified}");
 
-            return isSucceeded && isBackupVerified;
+            return isBackupVerified;
         }
         public async Task<bool> RestoreDatabaseAsync(SqlConnection con, string backupPath, string databaseName)
         {
-            bool isSucceeded = false;
-
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
             con.Open();
@@ -122,24 +95,27 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Restore error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
             con.Close();
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
-            return isSucceeded && isBackupVerified;
+            return isBackupVerified;
         }
         public async Task<bool> RestoreDatabaseWithMoveAsync(SqlConnection con, 
             string backupPath, string databaseName, string dbRestoreDataFolder)
         {
-            bool isSucceeded = false;
+            bool isDbExist = await DatabaseExistAsync(con, databaseName, false);
 
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
-            con.Open();
+
+            if(isDbExist) 
+                await DeleteDatabaseAsync(con, databaseName, false);
+
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
             var testPath = dbRestoreDataFolder;
             var testDbMdfName = databaseName;
@@ -168,27 +144,23 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Restore error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
             con.Close();
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
-            return isSucceeded && isBackupVerified;
+            return isBackupVerified;
         }
         public async Task<bool> CheckDatabaseAsync(SqlConnection con, string databaseName)
         {
-            bool isSucceeded = false;
-
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
             con.Open();
 
             using (var cmd = new SqlCommand(string.Format(
                 "dbcc checkdb {0} with EXTENDED_LOGICAL_CHECKS",
-                Brackets(databaseName)), con))
+                Brackets(QuoteString(databaseName))), con))
             {
                 try
                 {
@@ -198,29 +170,27 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Check error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
             con.Close();
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
-            return isSucceeded && isBackupChecked;
+            return isBackupChecked;
         }
-        // IF EXISTS (SELECT name FROM master.sys.databases WHERE name = N'YourDatabaseName')
-        public async Task<bool> DatabaseExistAsync(SqlConnection con, string databaseName)
+        public async Task<bool> DatabaseExistAsync(SqlConnection con, string databaseName, bool closeConn = true)
         {
-            bool isSucceeded = false;
             bool isDbExist = false;
 
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
-            con.Open();
+
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
             using (var cmd = new SqlCommand(string.Format(
                 "SELECT name FROM master.sys.databases WHERE name = {0}",
-                QuoteString(databaseName)
+                Brackets(QuoteString(databaseName))
                 ), con))
             {
                 try
@@ -236,23 +206,25 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Db exist error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
-            con.Close();
+            if (closeConn)
+                con.Close();
+
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
-            return isSucceeded && isDbExist;
+            return isDbExist;
         }
-        public async Task<bool> DeleteDatabaseAsync(SqlConnection con, string databaseName)
+        public async Task<bool> DeleteDatabaseAsync(SqlConnection con, string databaseName, bool closeConn = true)
         {
-            bool isSucceeded = false;
+            bool isDeleted = false;
 
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
-            con.Open();
+
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
             using (var cmd = new SqlCommand(string.Format(
                 "drop database {0}",
@@ -267,15 +239,19 @@ namespace backup_manager.Workers
                 {
                     logger.LogError(ex, $"Delete error for {databaseName}.");
                 }
-
-                isSucceeded = true;
             }
 
-            con.Close();
+            if (closeConn)
+                con.Close();
+
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
-            return isSucceeded;
+            isDeleted = await DatabaseExistAsync(con, databaseName);
+
+            logger.LogInformation($"{databaseName} is deleted? - {isDeleted}");
+
+            return !isDeleted;
         }
         private void OnInfoMessage(object sender, SqlInfoMessageEventArgs e)
         {
@@ -293,6 +269,10 @@ namespace backup_manager.Workers
                     // TODO: treat this as a progress message
                     logger.LogDebug($"Msg source {e.Source}, Current progress: {e.Message}");
                 }
+
+                // Success backup
+                if(info.Number == 3014)
+                    isBackupSuccessful = true;
 
                 // Success verification
                 if(info.Number == 3262)

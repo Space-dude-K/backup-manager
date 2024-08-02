@@ -31,7 +31,7 @@ namespace backup_manager.Workers
                 {
                     ShellStream shell;
 
-                    client.ConnectionInfo.Timeout = new TimeSpan(0, 1, 0);
+                    client.ConnectionInfo.Timeout = new TimeSpan(0, 2, 0);
                     client.Connect();
 
                     logger.LogInformation($"Conn info: {client.ConnectionInfo.Host + " "
@@ -165,7 +165,7 @@ namespace backup_manager.Workers
                     22,
                     device.Login.AdmLogin,
                     new PasswordAuthenticationMethod(device.Login.AdmLogin, device.Login.AdminPass));
-            connectionInfo.Timeout = new TimeSpan(0, 10, 0);
+            connectionInfo.Timeout = new TimeSpan(0, 2, 0);
 
             using (var client = new SshClient(device.Ip, device.Login.AdmLogin, device.Login.AdminPass))
             {
