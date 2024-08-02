@@ -12,7 +12,7 @@ namespace backup_manager.Workers
         {
             this.logger = logger;
         }
-        public void SafelyCreateZipFromDirectory(string file)
+        public void SafelyCreateZipFromDirectory(string file, List<string> copyPaths, bool isDbFile = false)
         {
             try
             {
@@ -33,14 +33,22 @@ namespace backup_manager.Workers
                     }
                 }
 
-                MoveFileAndDeleteAfterZip(file, zipFilePath);
+                if (isDbFile)
+                { 
+                    MoveDatabaseFileAndDeleteAfterZip(file, zipFilePath, copyPaths);
+                }
+                else
+                {
+                    MoveFileAndDeleteAfterZip(file, zipFilePath);
+                }
+                
             }
             catch (Exception)
             {
                 logger.LogError($"");
             }
         }
-        public void MoveFileAndDeleteAfterZip(string baseFile, string zipFile) 
+        private void MoveFileAndDeleteAfterZip(string baseFile, string zipFile) 
         {
             try
             {
@@ -57,6 +65,52 @@ namespace backup_manager.Workers
 
                 File.Move(zipFile, newFilePath);
                 File.Delete(baseFile);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"Exception when moving file {ex.Message}");
+            }
+        }
+        private string GetPathForDir(string basePath, string serverAndInstance, string backupName)
+        {
+            string serverAndInstanceFolder = Path.Combine(basePath, serverAndInstance);
+            string backupNameFolder = Path.Combine(serverAndInstanceFolder, backupName);
+
+            if (!Directory.Exists(backupNameFolder))
+                Directory.CreateDirectory(backupNameFolder);
+
+            return backupNameFolder;
+        }
+        private void MoveDatabaseFileAndDeleteAfterZip(string baseFile, string zipFile, List<string> copyPaths)
+        {
+            try
+            {
+                string fileName = Path.GetFileName(zipFile);
+                string subFolderPath = zipFile.Substring(0, zipFile.LastIndexOf(@"\"));
+
+                var splittedStr = zipFile.Split("_");
+
+                string serverAndInstance = splittedStr[0] + "_" + splittedStr[1];
+                string backupName = splittedStr[2];
+
+                var backupNameFolder = GetPathForDir(subFolderPath, serverAndInstance, backupName);
+                string newFilePath = Path.Combine(backupNameFolder, fileName);
+
+                logger.LogInformation($"Moving file {zipFile}");
+
+                File.Move(zipFile, newFilePath);
+                File.Delete(baseFile);
+
+                foreach (var copyPath in copyPaths)
+                {
+                    var copyDir = GetPathForDir(Path.Combine(copyPath, "Db"), splittedStr[1], backupName);
+                    var copyFilePath = Path.Combine(copyDir, Path.GetFileName(newFilePath));
+
+                    if (!Directory.Exists(copyDir))
+                        Directory.CreateDirectory(copyDir);
+
+                    File.Copy(newFilePath, copyFilePath);
+                }
             }
             catch (Exception ex)
             {

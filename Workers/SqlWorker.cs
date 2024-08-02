@@ -1,6 +1,5 @@
 ﻿using backup_manager.Interfaces;
 using Microsoft.Extensions.Logging;
-using System.Data.Common;
 using System.Data.SqlClient;
 
 namespace backup_manager.Workers

@@ -2,6 +2,6 @@
 {
     internal interface IZipWorker
     {
-        void SafelyCreateZipFromDirectory(string file);
+        void SafelyCreateZipFromDirectory(string file, List<string> copyPaths, bool isDbFile = false);
     }
 }
