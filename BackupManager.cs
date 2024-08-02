@@ -312,7 +312,11 @@ namespace backup_manager
                             $"\nRestore:{res.RestoreStatus}" +
                             $"\nDbCheck:{res.DbCheckStatus}" +
                             $"\nDelete:{res.DeleteStatus}");
-                        loggerManager.LogInformation($"Elapsed time: {res.CompletionTime}");
+
+                        var elapsedDt = TimeSpan.FromMilliseconds(res.CompletionTime);
+
+                        loggerManager.LogInformation($"Elapsed time: {res.CompletionTime} " +
+                            $"Completed in: {elapsedDt.Hours} h {elapsedDt.Minutes} m {elapsedDt.Seconds} s");
                     }
                 }
 

@@ -4,6 +4,7 @@ namespace backup_manager.Interfaces
 {
     internal interface IConfigurator
     {
+        string LoadClearAfterInDays();
         string LoadDbRestoreDataFolder();
         List<Db> LoadDbSettings(List<Login> logins = null);
         string LoadDbTempFolderPath();

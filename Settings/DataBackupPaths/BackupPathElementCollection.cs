@@ -22,5 +22,11 @@ namespace backup_manager.Settings.BackupPaths
             get { return (string)this["sftpTempFolder"]; }
             set { this["sftpTempFolder"] = value; }
         }
+        [ConfigurationProperty("clearAfterInDays", IsDefaultCollection = false)]
+        public string ClearAfterInDays
+        {
+            get { return (string)this["clearAfterInDays"]; }
+            set { this["clearAfterInDays"] = value; }
+        }
     }
 }
