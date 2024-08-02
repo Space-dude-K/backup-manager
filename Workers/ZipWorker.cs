@@ -39,7 +39,7 @@ namespace backup_manager.Workers
                 }
                 else
                 {
-                    MoveFileAndDeleteAfterZip(file, zipFilePath);
+                    MoveFileAndDeleteAfterZip(file, zipFilePath, copyPaths);
                 }
                 
             }
@@ -48,7 +48,7 @@ namespace backup_manager.Workers
                 logger.LogError($"");
             }
         }
-        private void MoveFileAndDeleteAfterZip(string baseFile, string zipFile) 
+        private void MoveFileAndDeleteAfterZip(string baseFile, string zipFile, List<string> copyPaths) 
         {
             try
             {
@@ -64,6 +64,18 @@ namespace backup_manager.Workers
                 logger.LogInformation($"Moving file {zipFile}");
 
                 File.Move(zipFile, newFilePath);
+
+                /*foreach (var copyPath in copyPaths)
+                {
+                    var copyDir = GetPathForDir(Path.Combine(copyPath, "Config", "Test"), splittedStr[1], backupName);
+                    var copyFilePath = Path.Combine(copyDir, Path.GetFileName(newFilePath));
+
+                    if (!Directory.Exists(copyDir))
+                        Directory.CreateDirectory(copyDir);
+
+                    File.Copy(newFilePath, copyFilePath);
+                }*/
+
                 File.Delete(baseFile);
             }
             catch (Exception ex)
@@ -103,7 +115,7 @@ namespace backup_manager.Workers
 
                 foreach (var copyPath in copyPaths)
                 {
-                    var copyDir = GetPathForDir(Path.Combine(copyPath, "Db"), splittedStr[1], backupName);
+                    var copyDir = GetPathForDir(Path.Combine(copyPath, "Db", "Test"), splittedStr[1], backupName);
                     var copyFilePath = Path.Combine(copyDir, Path.GetFileName(newFilePath));
 
                     if (!Directory.Exists(copyDir))

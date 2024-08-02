@@ -13,6 +13,7 @@ using backup_manager.Workers;
 using backup_manager.BackupWorkers;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.IO;
 
 namespace backup_manager
 {
@@ -67,7 +68,7 @@ namespace backup_manager
                 serverTasks.Add(tftpServer.RunTftpServerAsync(backupSftpFolder, Utils.GetLocalIPAddress(), 120000));
                 serverTasks.Add(sftpServer.RunSftpServerAsync(backupSftpFolder, 120000));
 
-                /*foreach (var device in devices)
+                foreach (var device in devices)
                 {
                     var dtStr = DateTime.Now.ToString("ddMMyyyy.fff", CultureInfo.InvariantCulture);
                     var deviceNameAndSn = Utils.RemoveInvalidChars(device.Name + "_" + device.SerialNumber);
@@ -80,7 +81,8 @@ namespace backup_manager
                         .Replace("%addr%", backupServerAddress)
                         .Replace("%file%", fileName);
 
-                    switch (device.BackupCmdType)
+                    
+                    /*switch (device.BackupCmdType)
                     {
                         case BackupCmdTypes.Default:
                             tasks.Add(Task.Run(() => sshShellWorker.ConnectAndExecuteAsync(device, backupCmd)));
@@ -124,9 +126,10 @@ namespace backup_manager
                             tasks.Add(Task.Run(() => sshShellWorker
                             .ConnectAndDownloadCiscoCfgAsync(device, backupCmd)));
                             break;
-                    }
-                }*/
+                    }*/
 
+                }
+                    
                 // TODO. Split by server for async proccessing
                 if (dbs.Count > 0)
                 {
@@ -147,7 +150,15 @@ namespace backup_manager
                         var serverAndInstanceName = db.Server;
                         var dtStr = Utils.GetDateStrForBackupFileName();
                         var fileName = (serverAndInstanceName + "_" + dtNamePart + "_" + dtStr + ".bak").GetCleanFileName();
-                        var fileFullPath = Path.Combine(dbTempPath, fileName);
+                        var fileFullPath = Path.Combine(db.BackupPath, fileName);
+
+                        var server = db.Server.Split("\\")[0];
+                        var disk = db.BackupPath.Split(":")[0];
+                        var pathAfterDisk = db.BackupPath.Substring(Path.GetPathRoot(db.BackupPath).Length);
+                        var file = Path.GetFileName(fileFullPath);
+
+                        var sourceFile = Path.Combine("\\\\" + server + "\\" + disk + "$" + "\\" + pathAfterDisk, file);
+                        var destFile = Path.Combine(dbTempPath, file);
 
                         var connStr = new SqlConnectionStringBuilder()
                         {
@@ -177,6 +188,9 @@ namespace backup_manager
 
                             loggerManager.LogInformation($"Backup task {db.Server} {db.DbName} completed: {timer.Elapsed}");
                             loggerManager.LogInformation($"Db {db.Server} - {db.DbName} backup status: {backupResult}");
+
+                            // Copy to test server
+                            File.Move(sourceFile, destFile);
 
                             dbResult.BackupStatus = backupResult;
                         }
@@ -323,17 +337,20 @@ namespace backup_manager
                 await Task.WhenAll(tasks);
                 await Task.Delay(10000);
 
-                loggerManager.LogInformation($"Backup tasks comleted.");
+                loggerManager.LogInformation($"Backup tasks completed.");
 
                 // Clear
                 foreach(var dir in backupLocations)
                 {
-                    loggerManager.LogInformation($"Clear dir {dir} files older than {clearAfterInDays} days");
-                    Utils.ClearOldFilesAndDirs(dir, clearAfterInDays);
+                    var d = Path.Combine(dir, "Db");
+                    loggerManager.LogInformation($"Clear dir {d} files older than {clearAfterInDays} days");
+                    Utils.ClearOldFiles(d, clearAfterInDays);
                 }
 
+                loggerManager.LogInformation($"Clear tasks completed.");
+
                 // Zip
-                foreach(var file in Directory.GetFiles(backupSftpFolder))
+                foreach (var file in Directory.GetFiles(backupSftpFolder))
                 {
                     zipWorker.SafelyCreateZipFromDirectory(file, backupLocations);
                 }
@@ -343,6 +360,12 @@ namespace backup_manager
                 }
 
                 loggerManager.LogInformation($"Zip tasks comleted.");
+
+                // Clear temp
+                //Utils.ClearOldSubDirs(backupSftpFolder, 0);
+                //Utils.ClearOldSubDirs(dbTempPath, 0);
+
+                loggerManager.LogInformation($"Clear temp tasks completed.");
             }
 
             await Task.WhenAll(serverTasks);

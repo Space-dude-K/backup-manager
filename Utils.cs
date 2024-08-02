@@ -452,7 +452,7 @@ namespace backup_manager
             //file is not locked
             return false;
         }
-        internal static void ClearOldFilesAndDirs(string dir, int days)
+        internal static void ClearOldFiles(string dir, int days)
         {
             var directory = new DirectoryInfo(dir);
             var filesToDelete = directory.EnumerateFiles()
@@ -461,6 +461,17 @@ namespace backup_manager
             foreach (var file in filesToDelete)
             {
                 file.Delete();
+            }
+        }
+        internal static void ClearOldSubDirs(string dir, int days)
+        {
+            var directory = new DirectoryInfo(dir);
+            var dirsToDelete = directory.EnumerateDirectories()
+                                .Where(d => d.LastWriteTime < DateTime.Now.AddDays(days));
+
+            foreach (var d in dirsToDelete)
+            {
+                Directory.Delete(d.FullName, true);
             }
         }
     }

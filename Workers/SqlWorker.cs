@@ -1,5 +1,7 @@
 ﻿using backup_manager.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Data.Common;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace backup_manager.Workers
@@ -104,9 +106,16 @@ namespace backup_manager.Workers
         public async Task<bool> RestoreDatabaseWithMoveAsync(SqlConnection con, 
             string backupPath, string databaseName, string dbRestoreDataFolder)
         {
+            bool isDbExist = await DatabaseExistAsync(con, databaseName, false);
+
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
-            con.Open();
+
+            if(isDbExist) 
+                await DeleteDatabaseAsync(con, databaseName, false);
+
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
             var testPath = dbRestoreDataFolder;
             var testDbMdfName = databaseName;
@@ -151,7 +160,7 @@ namespace backup_manager.Workers
 
             using (var cmd = new SqlCommand(string.Format(
                 "dbcc checkdb {0} with EXTENDED_LOGICAL_CHECKS",
-                Brackets(databaseName)), con))
+                Brackets(QuoteString(databaseName))), con))
             {
                 try
                 {
@@ -169,17 +178,19 @@ namespace backup_manager.Workers
 
             return isBackupChecked;
         }
-        public async Task<bool> DatabaseExistAsync(SqlConnection con, string databaseName)
+        public async Task<bool> DatabaseExistAsync(SqlConnection con, string databaseName, bool closeConn = true)
         {
             bool isDbExist = false;
 
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
-            con.Open();
+
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
             using (var cmd = new SqlCommand(string.Format(
                 "SELECT name FROM master.sys.databases WHERE name = {0}",
-                QuoteString(databaseName)
+                Brackets(QuoteString(databaseName))
                 ), con))
             {
                 try
@@ -197,19 +208,23 @@ namespace backup_manager.Workers
                 }
             }
 
-            con.Close();
+            if (closeConn)
+                con.Close();
+
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
             return isDbExist;
         }
-        public async Task<bool> DeleteDatabaseAsync(SqlConnection con, string databaseName)
+        public async Task<bool> DeleteDatabaseAsync(SqlConnection con, string databaseName, bool closeConn = true)
         {
             bool isDeleted = false;
 
             con.FireInfoMessageEventOnUserErrors = true;
             con.InfoMessage += OnInfoMessage;
-            con.Open();
+
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
             using (var cmd = new SqlCommand(string.Format(
                 "drop database {0}",
@@ -226,7 +241,9 @@ namespace backup_manager.Workers
                 }
             }
 
-            con.Close();
+            if (closeConn)
+                con.Close();
+
             con.InfoMessage -= OnInfoMessage;
             con.FireInfoMessageEventOnUserErrors = false;
 
